@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow
-from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QPixmap
 
 
@@ -9,11 +9,7 @@ class DesktopPet(QMainWindow):
         super().__init__()
 
         # Remove window frame & keep on top
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
-        )
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
 
         # Transparent background
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
