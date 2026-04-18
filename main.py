@@ -20,9 +20,9 @@ class DesktopPet(QWidget):
 
         # Load image
         self.states = {
-            "idle": QPixmap("cube.png"),
-            "walk": QPixmap("cube.png"),
-            "speak": QPixmap("cube.png"),
+            "idle": QPixmap("idleCube.png"),
+            "walk": QPixmap("walkCube.png"),
+            "speak": QPixmap("speakCube.png"),
             #idea pick up, talk, sleep
         }
         self.current_state = "idle"
