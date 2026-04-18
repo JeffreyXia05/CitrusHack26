@@ -1,7 +1,7 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QLabel, QWidget
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
+from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtGui import QPixmap, QPainter, QPen, QFont
 
 
 class DesktopPet(QWidget):
@@ -33,11 +33,55 @@ class DesktopPet(QWidget):
         self.label.setPixmap(self.pixmap)
         self.label.setGeometry(50, 50, 100, 100)  # start centered
 
+        # Text bubble label
+        self.text_bubble = QLabel(self)
+        self.text_bubble.setWordWrap(True)
+        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_bubble.setStyleSheet("background-color: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 10px;")
+        self.text_bubble.setFont(QFont("Arial", 12))
+        self.text_bubble.hide()
+
         # Drag state (for sprite only)
         self.dragging = False
         self.offset = QPoint()
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        # Encouragement words
+        self.encouragement_words = [
+            "You got this!",
+            "Keep going!",
+            "You're doing great!",
+            "Stay strong!",
+            "Believe in yourself!",
+            "One step at a time!",
+            "You can do it!",
+            "Never give up!",
+            "You're awesome!",
+            "Keep pushing!",
+            "You're making progress!",
+            "Stay positive!",
+            "You've got this!",
+            "Keep shining!",
+            "You're amazing!"
+        ]
+
+        # Timer for random encouragement
+        self.encouragement_timer = QTimer(self)
+        self.encouragement_timer.setSingleShot(True)
+        self.encouragement_timer.timeout(self.show_random_encouragement)
+
+    def show_random_encouragement(self):
+        """Display a random encouragement message"""
+        if self.text_bubble.isVisible():
+            self.text_bubble.hide()
+            QTimer.singleShot(1000, self.show_random_encouragement)
+            return
+
+        word = self.encouragement_words[len(self.encouragement_words) // 2]
+        self.text_bubble.setText(word)
+        self.text_bubble.show()
+        self.encouragement_timer.start(5000)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
@@ -62,6 +106,18 @@ class DesktopPet(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
+        # Show encouragement on mouse release
+        self.show_random_encouragement()
+
+    def resizeEvent(self, event):
+        # Keep label centered when window resizes
+        self.label.move(
+            (self.width() - self.label.width()) // 2,
+            (self.height() - self.label.height()) // 2
+        )
+
+    def closeEvent(self, event):
+        self.encouragement_timer.stop()
 
 
 if __name__ == "__main__":
