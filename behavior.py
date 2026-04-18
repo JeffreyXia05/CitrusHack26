@@ -6,6 +6,10 @@ def update_behavior(pet):
     if pet.chat_input.isVisible():
         return 
 
+    if pet.current_state == "sleep":
+        sleep(pet)
+        return
+    
     pet.state_timer += 1
 
     if pet.current_state == "idle":
@@ -55,4 +59,9 @@ def walk(pet): #consider implimenting weighted wandering AI (chooses destination
     pet.label.move(x, y)
 
 def speak(pet):
+    pass
+
+def sleep(pet):
+    # Pet stays still. 
+    # Animation is handled automatically by update_appearance in pet.py
     pass
