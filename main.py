@@ -55,6 +55,30 @@ class DesktopPet(QWidget):
 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
+        # Encouragement words (initialized once)
+        self.encouragement_words = [
+            "You got this!",
+            "Keep going!",
+            "You're doing great!",
+            "Stay strong!",
+            "Believe in yourself!",
+            "One step at a time!",
+            "You can do it!",
+            "Never give up!",
+            "You're awesome!",
+            "Keep pushing!",
+            "You're making progress!",
+            "Stay positive!",
+            "You've got this!",
+            "Keep shining!",
+            "You're amazing!"
+        ]
+
+        # Timer for random encouragement (initialized once)
+        self.encouragement_timer = QTimer(self)
+        self.encouragement_timer.setSingleShot(True)
+        self.encouragement_timer.timeout.connect(self.show_random_encouragement)
+
     def update_appearance(self):
         """Updates the image based on the current state."""
         pixmap = self.states.get(self.current_state)
@@ -85,30 +109,6 @@ class DesktopPet(QWidget):
         # Optional: Add small random movement
         if self.current_state == "IDLE":
             self.move(self.x() + random.randint(-5, 5), self.y() + random.randint(-5, 5))
-
-        # Encouragement words
-        self.encouragement_words = [
-            "You got this!",
-            "Keep going!",
-            "You're doing great!",
-            "Stay strong!",
-            "Believe in yourself!",
-            "One step at a time!",
-            "You can do it!",
-            "Never give up!",
-            "You're awesome!",
-            "Keep pushing!",
-            "You're making progress!",
-            "Stay positive!",
-            "You've got this!",
-            "Keep shining!",
-            "You're amazing!"
-        ]
-
-        # Timer for random encouragement
-        self.encouragement_timer = QTimer(self)
-        self.encouragement_timer.setSingleShot(True)
-        self.encouragement_timer.timeout.connect(self.show_random_encouragement)
 
     def show_random_encouragement(self):
         """Display a random encouragement message next to the cube"""
