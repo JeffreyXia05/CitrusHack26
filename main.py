@@ -20,6 +20,20 @@ class DesktopPet(QMainWindow):
 
         # Load image (FIXED filename)
         self.pixmap = QPixmap("cube.png")
+
+        # Resize here
+        self.pixmap = self.pixmap.scaled(
+            120, 120,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+
+        self.label = QLabel(self)
+        self.label.setPixmap(self.pixmap)
+        self.label.resize(self.pixmap.size())
+        self.label.move(0, 0)
+
+        self.setFixedSize(self.pixmap.size())
         print("Loaded:", not self.pixmap.isNull())  # debug
 
         # Label setup
