@@ -1,75 +1,67 @@
 import sys
-from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow
+from PyQt6.QtWidgets import QApplication, QLabel, QWidget
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QPixmap
 
 
-class DesktopPet(QMainWindow):
+class DesktopPet(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Remove window frame & keep on top
+        # Fixed window (NEVER moves)
+        # Get screen size
+        screen = QApplication.primaryScreen().geometry()
+        self.setGeometry(screen)
+
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
             Qt.WindowType.WindowStaysOnTopHint |
             Qt.WindowType.Tool
         )
 
-        # Transparent background
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
 
-        # Load image (FIXED filename)
-        self.pixmap = QPixmap("cube.png")
-
-        # Resize here
-        self.pixmap = self.pixmap.scaled(
-            120, 120,
+        # Load image
+        self.pixmap = QPixmap("cube.png").scaled(
+            100, 100,
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation
         )
 
+        # Sprite (cube)
         self.label = QLabel(self)
         self.label.setPixmap(self.pixmap)
-        self.label.resize(self.pixmap.size())
-        self.label.move(0, 0)
+        self.label.setGeometry(50, 50, 100, 100)  # start centered
 
-        self.setFixedSize(self.pixmap.size())
-        print("Loaded:", not self.pixmap.isNull())  # debug
+        # Drag state (for sprite only)
+        self.dragging = False
+        self.offset = QPoint()
 
-        # Label setup
-        self.label = QLabel(self)
-        self.label.setPixmap(self.pixmap)
-        self.label.resize(self.pixmap.size())
-        self.label.move(0, 0)
-
-        # Match window size exactly to image
-        self.setFixedSize(self.pixmap.size())
-
-        # Optional: only clickable on visible pixels
-        # (comment out if it causes issues)
-        # self.setMask(self.pixmap.mask())
-
-        # Starting position
-        self.move(100, 100)
-
-        # Allow keyboard focus
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.activateWindow()
-        self.setFocus()
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
             QApplication.quit()
 
+    # 👉 CLICK ON LABEL ONLY
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
-            self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
-            event.accept()
+            if self.label.geometry().contains(event.pos()):
+                self.dragging = True
+                self.offset = event.pos() - self.label.pos()
 
     def mouseMoveEvent(self, event):
-        if event.buttons() == Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self.drag_pos)
-            event.accept()
+        if self.dragging:
+            new_pos = event.pos() - self.offset
+
+            # keep inside window bounds (optional but nice)
+            new_x = max(0, min(new_pos.x(), self.width() - self.label.width()))
+            new_y = max(0, min(new_pos.y(), self.height() - self.label.height()))
+
+            self.label.move(new_x, new_y)
+
+    def mouseReleaseEvent(self, event):
+        self.dragging = False
 
 
 if __name__ == "__main__":
