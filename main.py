@@ -15,7 +15,7 @@ class DesktopPet(QMainWindow):
 
         # 3. Add your sprite image
         self.label = QLabel(self)
-        self.pixmap = QPixmap("sprite_idle.png")  # Replace with your filename
+        self.pixmap = QPixmap("cube.png")  # Replace with your filename
         self.label.setPixmap(self.pixmap)
         
         # Resize window to fit the image
