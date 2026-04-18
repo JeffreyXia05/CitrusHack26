@@ -11,6 +11,9 @@ class DesktopPet(QWidget):
     def __init__(self):
         super().__init__()
 
+        self.frame_counter = 0
+        self.frame_index = 0
+
         self.setup_window()
         self.setup_states()
         self.setup_sprite()
@@ -38,6 +41,38 @@ class DesktopPet(QWidget):
     def setup_states(self):
         self.states = load_states()
         self.current_state = "idle"
+        self.dx = 0
+        self.dy = 0
+        self.state_timer = 0
+        self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
+
+    def set_state(self, new_state):
+        if new_state not in self.states:
+            print(f"Warning: unknown state '{new_state}'")
+            return
+
+        # only run when state actually changes
+        if self.current_state != new_state:
+            self.current_state = new_state
+
+            # reset animation
+            self.frame_index = 0
+            self.frame_counter = 0
+
+            # reset timing
+            self.state_timer = 0
+
+            # assign duration per state
+            if new_state == "idle":
+                self.state_duration = random.randint(180, 420)
+
+            elif new_state == "walk":
+                self.state_duration = random.randint(60, 300)
+
+                # set movement ONCE
+                self.MAX_SPEED = 3
+                self.dx = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
+                self.dy = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
 
     # -------------------------
     # SPRITE
@@ -77,7 +112,7 @@ class DesktopPet(QWidget):
     def setup_timers(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
-        self.timer.start(3000)
+        self.timer.start(16)
 
     # -------------------------
     # MAIN LOOP
@@ -90,11 +125,15 @@ class DesktopPet(QWidget):
     # APPEARANCE
     # -------------------------
     def update_appearance(self):
-        pixmap = self.states.get(self.current_state)
+        state_data = self.states.get(self.current_state)
 
-        if not pixmap or pixmap.isNull():
-            print(f"Error: Could not load '{self.current_state}' image.")
+        if not state_data:
+            print(f"Error: missing state '{self.current_state}'")
             return
+
+        frames = state_data["frames"]
+
+        pixmap = frames[self.frame_index]
 
         scaled = pixmap.scaled(
             120, 120,
@@ -104,6 +143,15 @@ class DesktopPet(QWidget):
 
         self.label.setPixmap(scaled)
         self.label.resize(scaled.size())
+
+        # ---- animation timing ----
+        self.frame_counter += 1
+
+        fps = state_data.get("fps", 2)
+
+        if self.frame_counter >= (60 // fps):
+            self.frame_counter = 0
+            self.frame_index = (self.frame_index + 1) % len(frames)
 
     # =========================
     # UI HOOK (used by encouragement system)
@@ -160,3 +208,4 @@ class DesktopPet(QWidget):
 
     def closeEvent(self, event):
         self.encouragement_timer.stop()
+
