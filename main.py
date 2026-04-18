@@ -1,3 +1,4 @@
+import random
 import sys
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QVBoxLayout
 from PyQt6.QtCore import Qt, QPoint, QTimer
@@ -69,19 +70,32 @@ class DesktopPet(QWidget):
         # Timer for random encouragement
         self.encouragement_timer = QTimer(self)
         self.encouragement_timer.setSingleShot(True)
-        self.encouragement_timer.timeout(self.show_random_encouragement)
+        self.encouragement_timer.timeout.connect(self.show_random_encouragement)
 
     def show_random_encouragement(self):
-        """Display a random encouragement message"""
+        """Display a random encouragement message next to the cube"""
         if self.text_bubble.isVisible():
             self.text_bubble.hide()
-            QTimer.singleShot(1000, self.show_random_encouragement)
+            delay = random.randint(3000, 15000)
+            QTimer.singleShot(delay, self.show_random_encouragement)
             return
 
-        word = self.encouragement_words[len(self.encouragement_words) // 2]
+        word = self.encouragement_words[random.randint(0, len(self.encouragement_words) - 1)]
         self.text_bubble.setText(word)
+        
+        # Position text bubble next to the cube (to the right)
+        bubble_width = self.text_bubble.sizeHint().width()
+        bubble_height = self.text_bubble.sizeHint().height()
+        
+        # Position to the right of the cube with some offset
+        self.text_bubble.move(
+            self.label.x() + self.label.width() + 10,
+            self.label.y() + (self.label.height() - bubble_height) // 2
+        )
+        self.text_bubble.setStyleSheet("color: black; background-color: rgba(255, 255, 255, 0.9); border-radius: 15px; padding: 10px;")
+
         self.text_bubble.show()
-        self.encouragement_timer.start(5000)
+        self.encouragement_timer.start(3000)
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
@@ -114,6 +128,13 @@ class DesktopPet(QWidget):
         self.label.move(
             (self.width() - self.label.width()) // 2,
             (self.height() - self.label.height()) // 2
+        )
+        # Reposition text bubble when window resizes
+        bubble_width = self.text_bubble.sizeHint().width()
+        bubble_height = self.text_bubble.sizeHint().height()
+        self.text_bubble.move(
+            self.label.x() + self.label.width() + 10,
+            self.label.y() + (self.label.height() - bubble_height) // 2
         )
 
     def closeEvent(self, event):
