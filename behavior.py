@@ -2,14 +2,18 @@ import random
 from encouragement import EncouragementSystem
 
 def update_behavior(pet):
+    # If the user is typing, don't tick the state timer
+    if pet.chat_input.isVisible():
+        return 
+
     pet.state_timer += 1
 
     if pet.current_state == "idle":
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("speak" if random.random() < 0.3 else "walk")
-
+            pet.set_state("speak" #if random.random() < 0.3 else "walk")
+            )
     elif pet.current_state == "walk":
         walk(pet)
 
