@@ -13,12 +13,14 @@ class DesktopPet(QWidget):
 
         self.frame_counter = 0
         self.frame_index = 0
+        self.last_speak_state = None
+        self.current_encouragement = None
 
         self.setup_window()
         self.setup_states()
         self.setup_sprite()
-        self.setup_text_bubble()
         self.setup_systems()
+        self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
 
@@ -47,6 +49,10 @@ class DesktopPet(QWidget):
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
 
     def set_state(self, new_state):
+        if self.current_state == "speak" and new_state != "speak":
+            self.text_bubble.hide()
+            self.current_encouragement = None
+            self.last_speak_state = None
         if new_state not in self.states:
             print(f"Warning: unknown state '{new_state}'")
             return
@@ -73,6 +79,9 @@ class DesktopPet(QWidget):
                 self.MAX_SPEED = 3
                 self.dx = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
                 self.dy = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
+            elif new_state == "speak":
+                self.state_duration = random.randint(90, 210)
+                self.encouragement.trigger()
 
     # -------------------------
     # SPRITE
@@ -86,19 +95,6 @@ class DesktopPet(QWidget):
         center_y = (screen.height() - self.label.height()) // 2
         self.label.move(center_x, center_y)
 
-    # =========================
-    # TEXT BUBBLE
-    # =========================
-    def setup_text_bubble(self):
-        self.text_bubble = QLabel(self)
-        self.text_bubble.setWordWrap(True)
-        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.text_bubble.setFont(QFont("Arial", 12))
-        self.text_bubble.setStyleSheet(
-            "color: black; background-color: rgba(255,255,255,0.9); "
-            "border-radius: 15px; padding: 10px;"
-        )
-        self.text_bubble.hide()
 
     # =========================
     # SYSTEMS
@@ -154,6 +150,20 @@ class DesktopPet(QWidget):
             self.frame_index = (self.frame_index + 1) % len(frames)
 
     # =========================
+    # TEXT BUBBLE
+    # =========================
+    def setup_text_bubble(self):
+        self.text_bubble = QLabel(self)
+        self.text_bubble.setWordWrap(True)
+        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_bubble.setFont(QFont("Arial", 12))
+        self.text_bubble.setStyleSheet(
+            "color: black; background-color: rgba(255,255,255,0.9); "
+            "border-radius: 15px; padding: 10px;"
+        )
+        self.text_bubble.hide()
+
+    # =========================
     # UI HOOK (used by encouragement system)
     # =========================
     def show_encouragement(self, text):
@@ -198,14 +208,12 @@ class DesktopPet(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
-        self.encouragement.trigger()
+        if self.current_state != "speak":
+            self.encouragement.trigger()
 
     def resizeEvent(self, event):
         self.label.move(
             (self.width() - self.label.width()) // 2,
             (self.height() - self.label.height()) // 2
         )
-
-    def closeEvent(self, event):
-        self.encouragement_timer.stop()
 

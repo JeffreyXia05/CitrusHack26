@@ -27,7 +27,7 @@ def load_states():
 
         "speak": {
             "frames": [
-                QPixmap(os.path.join(ASSETS, "speakCube.png")),
+                QPixmap(os.path.join(ASSETS, "speakCat.png")),
                 #QPixmap(os.path.join(ASSETS, "speak2.png")),
             ],
             "fps": 3
