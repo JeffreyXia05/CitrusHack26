@@ -2,22 +2,7 @@ from PyQt6.QtWidgets import (
     QWidget, QPushButton, QVBoxLayout, QDialog, QLabel
 )
 
-class SettingsDialog(QDialog):
-    def __init__(self):
-        super().__init__()
-
-        self.setWindowTitle("Settings")
-        self.setFixedSize(300, 200)
-
-        layout = QVBoxLayout()
-
-        layout.addWidget(QLabel("Settings Menu"))
-
-        # placeholder settings (you can expand later)
-        layout.addWidget(QLabel("• Idle"))
-
-
-        self.setLayout(layout)
+from settings import SettingsDialog
 
 class Launcher(QWidget):
     def __init__(self, on_deploy):
