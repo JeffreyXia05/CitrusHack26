@@ -1,6 +1,6 @@
 import random
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
-from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer
+from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QFont
 
 from pynput import mouse as pynput_mouse
@@ -46,11 +46,21 @@ class DesktopPet(QWidget):
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
+        # Updated Flags for "True" Always-on-top behavior
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint |      # Removes title bar
+            Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
+            Qt.WindowType.SubWindow |                # Helps on some Linux distros
+            Qt.WindowType.X11BypassWindowManagerHint | # For Linux/X11
+            Qt.WindowType.Tool                        # Hides from Taskbar + stays afloat
         )
+        
+        # This attribute is crucial for transparency and click-through
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        
+        # On some systems, the pet still "hides" when you click a window.
+        # This line forces the window to be visible.
+        self.show()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setMouseTracking(True)  # Add this
         self.label.setMouseTracking(True) # And this for the sprite label
@@ -213,28 +223,32 @@ class DesktopPet(QWidget):
             print(f"Error: missing state '{self.current_state}'")
             return
 
+        # This ensures 'frames' is defined for the rest of the function
         frames = state_data["frames"]
-
         pixmap = frames[self.frame_index]
 
+        # Use FastTransformation for crisp pixel art clarity
         scaled = pixmap.scaled(
             120, 120,
             Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+            Qt.TransformationMode.FastTransformation
         )
 
         self.label.setPixmap(scaled)
-        self.label.resize(scaled.size())
+        
+        # Only resize the label if the movement animation ISN'T running
+        # This prevents the pet from 'stuttering' during the sleep crawl
+        if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
+            self.label.resize(scaled.size())
 
         # ---- animation timing ----
         self.frame_counter += 1
-
         fps = state_data.get("fps", 2)
 
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
+            # Use the frames variable we defined above
             self.frame_index = (self.frame_index + 1) % len(frames)
-
     # =========================
     # TEXT BUBBLE
     # =========================
