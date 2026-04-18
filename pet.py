@@ -1,7 +1,10 @@
 import random
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
-from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer
 from PyQt6.QtGui import QFont
+
+from pynput import mouse as pynput_mouse
+from pynput import keyboard as pynput_keyboard
 
 from states import load_states
 from behavior import update_behavior
@@ -11,18 +14,30 @@ class DesktopPet(QWidget):
     def __init__(self):
         super().__init__()
 
+        # 1. Initialize basic variables first
         self.frame_counter = 0
         self.frame_index = 0
         self.last_speak_state = None
         self.current_encouragement = None
+        self.inactivity_timer = 0
+        self.INACTIVITY_LIMIT = 15 * 60 
+        self.dragging = False  # Ensure this exists early
 
-        self.setup_window()
-        self.setup_states()
-        self.setup_sprite()
+        # 2. Setup DATA (This must come before visuals)
+        self.setup_states()    # This creates self.states and self.current_state
+
+        # 3. Setup VISUALS (Now update_appearance will work)
+        self.setup_sprite()    # Creates self.label and calls update_appearance
+        self.setup_window()    # Configures the window and mouse tracking
+        
+        # 4. Setup EVERYTHING ELSE
         self.setup_systems()
         self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
+        
+        self.installEventFilter(self)
+        self.setup_global_listeners()
 
     # -------------------------
     # WINDOW
@@ -37,6 +52,11 @@ class DesktopPet(QWidget):
             Qt.WindowType.Tool
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setMouseTracking(True)  # Add this
+        self.label.setMouseTracking(True) # And this for the sprite label
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setMouseTracking(True)
+        self.label.setMouseTracking(True)
     # -------------------------
     # STATES
     # -------------------------
@@ -47,6 +67,7 @@ class DesktopPet(QWidget):
         self.dy = 0
         self.state_timer = 0
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
+        self.current_state = "idle"
 
     def set_state(self, new_state):
         if self.current_state == "speak" and new_state != "speak":
@@ -82,6 +103,10 @@ class DesktopPet(QWidget):
             elif new_state == "speak":
                 self.state_duration = random.randint(90, 210)
                 self.encouragement.trigger()
+            elif new_state == "sleep":
+                self.state_duration = 999999 # Stay asleep until woken up
+                if hasattr(self, 'text_bubble'):
+                    self.text_bubble.hide()
 
     # -------------------------
     # SPRITE
@@ -110,13 +135,74 @@ class DesktopPet(QWidget):
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
 
+    # =========================
+    # SLEEP RELATED
+    # =========================
+
+    def on_global_input(self, *args):
+        # This is called whenever ANYTHING happens on the computer
+        # Since this runs in a background thread, we reset the timer safely
+        self.inactivity_timer = 0
+        
+        # If the pet is sleeping, we need to wake it up
+        # Note: We don't change UI here directly because this is a different thread
+        # The tick() function will handle the state switch next frame
+
+    def eventFilter(self, obj, event):
+        # Detect Mouse Movement, Clicks, or Keyboard Presses
+        if event.type() in [
+            QEvent.Type.MouseMove, 
+            QEvent.Type.MouseButtonPress, 
+            QEvent.Type.KeyPress
+        ]:
+            self.wake_up()
+        
+        return super().eventFilter(obj, event)
+
+    def setup_global_listeners(self):
+        # Ensure these names match what is in closeEvent
+        self.m_listener = pynput_mouse.Listener(on_move=lambda x, y: self.wake_up())
+        self.k_listener = pynput_keyboard.Listener(on_press=lambda key: self.wake_up())
+        
+        self.m_listener.start()
+        self.k_listener.start()
+
+    def wake_up(self):
+        # This resets the timer. The tick() function will see this 
+        # and change the state from "sleep" to "idle" automatically.
+        self.inactivity_timer = 0
+
     # -------------------------
     # MAIN LOOP
     # -------------------------
     def tick(self):
-        update_behavior(self)
+        # 1. Increment inactivity timer
+        if not self.dragging:
+            self.inactivity_timer += 1
+
+        # 2. Check for Sleep Trigger
+        if self.inactivity_timer >= self.INACTIVITY_LIMIT:
+            if self.current_state != "sleep":
+                self.set_state("sleep")
+        else:
+            # If the timer was reset by global input, wake up!
+            if self.current_state == "sleep":
+                self.set_state("idle")
+
+        # 3. Process Behavior (Only if not sleeping)
+        if self.current_state != "sleep":
+            update_behavior(self)
+            
+        # 4. Final Visual Render
         self.update_appearance()
 
+    def closeEvent(self, event):
+        # Check if they exist before stopping to prevent errors on early exit
+        if hasattr(self, 'm_listener'):
+            self.m_listener.stop()
+        if hasattr(self, 'k_listener'):
+            self.k_listener.stop()
+        event.accept()
     # -------------------------
     # APPEARANCE
     # -------------------------
