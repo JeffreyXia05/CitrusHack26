@@ -1,4 +1,5 @@
 import random
+from encouragement import EncouragementSystem
 
 def update_behavior(pet):
     pet.state_timer += 1
@@ -7,10 +8,16 @@ def update_behavior(pet):
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("walk")
+            pet.set_state("speak" if random.random() < 0.3 else "walk")
 
     elif pet.current_state == "walk":
         walk(pet)
+
+        if pet.state_timer >= pet.state_duration:
+            pet.set_state("idle")
+
+    elif pet.current_state == "speak":
+        speak(pet)
 
         if pet.state_timer >= pet.state_duration:
             pet.set_state("idle")
@@ -42,3 +49,6 @@ def walk(pet): #consider implimenting weighted wandering AI (chooses destination
         pet.dy *= -1
 
     pet.label.move(x, y)
+
+def speak(pet):
+    pass
