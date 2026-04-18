@@ -3,30 +3,51 @@ from PyQt6.QtWidgets import QApplication, QLabel, QMainWindow
 from PyQt6.QtCore import Qt, QPoint
 from PyQt6.QtGui import QPixmap
 
+
 class DesktopPet(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # 1. Remove the window frame and title bar
-        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Tool)
-        
-        # 2. Make the background invisible
+        # Remove window frame & keep on top
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.WindowStaysOnTopHint |
+            Qt.WindowType.Tool
+        )
+
+        # Transparent background
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
 
-        # 3. Add your sprite image
+        # Load image (FIXED filename)
+        self.pixmap = QPixmap("cube.png")
+        print("Loaded:", not self.pixmap.isNull())  # debug
+
+        # Label setup
         self.label = QLabel(self)
-        self.pixmap = QPixmap("cube.png")  # Replace with your filename
         self.label.setPixmap(self.pixmap)
-        
-        # Resize window to fit the image
-        self.resize(self.pixmap.width(), self.pixmap.height())
-        
+        self.label.resize(self.pixmap.size())
+        self.label.move(0, 0)
+
+        # Match window size exactly to image
+        self.setFixedSize(self.pixmap.size())
+
+        # Optional: only clickable on visible pixels
+        # (comment out if it causes issues)
+        # self.setMask(self.pixmap.mask())
+
         # Starting position
-        self.curr_pos = QPoint(100, 100)
-        self.move(self.curr_pos)
+        self.move(100, 100)
+
+        # Allow keyboard focus
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.activateWindow()
+        self.setFocus()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key.Key_Escape:
+            QApplication.quit()
 
     def mousePressEvent(self, event):
-        # This allows you to click and drag the pet manually
         if event.button() == Qt.MouseButton.LeftButton:
             self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
             event.accept()
@@ -35,6 +56,7 @@ class DesktopPet(QMainWindow):
         if event.buttons() == Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self.drag_pos)
             event.accept()
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
