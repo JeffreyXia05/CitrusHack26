@@ -20,7 +20,7 @@ class DesktopPet(QWidget):
         self.last_speak_state = None
         self.current_encouragement = None
         self.inactivity_timer = 0
-        self.INACTIVITY_LIMIT = 15 * 60 
+        self.INACTIVITY_LIMIT = 30 * 60 
         self.dragging = False  # Ensure this exists early
 
         # 2. Setup DATA (This must come before visuals)
