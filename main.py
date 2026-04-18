@@ -1,4 +1,5 @@
 import sys
+import random
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QMainWindow
 from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QPixmap
@@ -30,14 +31,15 @@ class DesktopPet(QWidget):
         # Sprite (cube)
         self.label = QLabel(self)
         self.update_appearance()
-        self.label.setGeometry(50, 50, 100, 100)  # start centered
+
+        screen = QApplication.primaryScreen().geometry() #set to screen center
+        center_x = (screen.width() - self.width()) // 2
+        center_y = (screen.height() - self.height()) // 2
+        self.move(center_x, center_y)
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_appearance)
         self.timer.start(3000)  # update every second
-
-        self.move(200, 200)
-        self.show()
 
         # Drag state (for sprite only)
         self.dragging = False
@@ -46,20 +48,23 @@ class DesktopPet(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def update_appearance(self):
-        image_path = self.states.get(self.current_state, "cube.png")
-        self.pixmap = QPixmap(image_path)
-        self.label.setPixmap(self.pixmap)
-
-        if self.pixmap.isNull():
-            print(f"Failed to load image: {image_path}")
+        """Updates the image based on the current state."""
+        pixmap = self.states.get(self.current_state)
+        
+        if pixmap.isNull():
+            # Fallback if image is missing
+            print(f"Error: Could not load '{self.current_state}' image.")
             return
 
-        scaled_pixmap = self.pixmap.scaled(100, 100, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        scaled_pixmap = pixmap.scaled(
+            120, 120,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
+        
         self.label.setPixmap(scaled_pixmap)
-        self.label.setGeometry(self.label.x(), self.label.y(), scaled_pixmap.width(), scaled_pixmap.height()) 
         self.label.resize(scaled_pixmap.size())
-        self.setFixedSize(self.label.size())
-    
+
     def update_behavior(self):
         """The logic that picks a new state."""
         # Randomly choose a new state
@@ -72,8 +77,6 @@ class DesktopPet(QWidget):
         # Optional: Add small random movement
         if self.current_state == "IDLE":
             self.move(self.x() + random.randint(-5, 5), self.y() + random.randint(-5, 5))
-
-
 
     def keyPressEvent(self, event):
         if event.key() == Qt.Key.Key_Escape:
