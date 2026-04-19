@@ -112,6 +112,9 @@ class DesktopPet(QWidget):
         self.state_timer = 0
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
         self.current_state = "idle"
+        self.pinned = False
+        self.pin_timer = 0
+        self.pin_duration = 0
         
 
     def set_state(self, new_state):
@@ -272,6 +275,13 @@ class DesktopPet(QWidget):
     # -------------------------
     def tick(self):
         self.update_obstacles()
+
+        if self.pinned:
+            self.pin_timer += 1
+            if self.pin_timer >= self.pin_duration:
+                self.pinned = False
+                self.set_state("idle")  # wake up when pin expires
+            return
 
         if not self.dragging:
             self.inactivity_timer += 1
@@ -454,6 +464,16 @@ class DesktopPet(QWidget):
             if self.label.geometry().contains(event.pos()):
                 self.dragging = True
                 self.offset = event.pos() - self.label.pos()
+
+        if event.button() == Qt.MouseButton.RightButton:
+            if self.label.geometry().contains(event.pos()):
+                self.pinned = True
+                self.pin_timer = 0
+                self.pin_duration = 60 * 60
+                
+                self.state_duration = self.pin_duration
+
+            self.set_state("sleep")
 
     def mouseMoveEvent(self, event):
         if self.dragging:
