@@ -19,7 +19,9 @@ ENCOURAGEMENT_WORDS = [
     "Stay positive!",
     "You've got this!",
     "Keep shining!",
-    "You're amazing!"
+    "You're amazing!",
+    "Go go go!!!",
+    "I'm itchy"
 ]
 
 
@@ -41,20 +43,21 @@ class EncouragementSystem:
 
 
     def show_random_encouragement(self):
-        """Pick and display a message."""
-
+        """Pick a message and open the chat input."""
         if self.pet.text_bubble.isVisible():
             self.pet.text_bubble.hide()
-            delay = random.randint(3000, 15000)
-            self.timer.start(delay)
+            self.pet.chat_input.hide() # Hide input when bubble closes
+            self.timer.start(random.randint(3000, 15000))
             return
 
         word = random.choice(ENCOURAGEMENT_WORDS)
         if self.pet.current_state == "speak":
-            if self.pet.last_speak_state != "speak":
-                self.pet.last_speak_state = "speak"
-                self.pet.current_encouragement = random.choice(ENCOURAGEMENT_WORDS)
-
-                self.pet.show_encouragement(self.pet.current_encouragement)
-
-        self.timer.start(3000)
+            self.pet.show_encouragement(word)
+            
+            # Show the chat input right below the bubble
+            self.pet.chat_input.move(
+                self.pet.text_bubble.x(), 
+                self.pet.text_bubble.y() + self.pet.text_bubble.height() + 5
+            )
+            self.pet.chat_input.setFixedWidth(self.pet.text_bubble.width())
+            self.pet.chat_input.setFocus()

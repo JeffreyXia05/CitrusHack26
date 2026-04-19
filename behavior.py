@@ -5,6 +5,10 @@ from encouragement import EncouragementSystem
 # MAIN BEHAVIOR LOOP
 # -------------------------
 def update_behavior(pet):
+    # If the user is typing, don't tick the state timer
+    if pet.chat_input.hasFocus():
+        return 
+
     if pet.current_state == "sleep":
         sleep(pet)
         return
@@ -16,7 +20,7 @@ def update_behavior(pet):
 
         if pet.state_timer >= pet.state_duration:
             pet.set_state("speak" if random.random() < 0.3 else "walk")
-
+            
     elif pet.current_state == "walk":
         walk(pet)
 
@@ -27,6 +31,8 @@ def update_behavior(pet):
         speak(pet)
 
         if pet.state_timer >= pet.state_duration:
+            pet.text_bubble.hide()
+            pet.chat_input.hide()
             pet.set_state("idle")
 
 

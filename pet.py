@@ -1,7 +1,9 @@
 import random
+from google import genai
+from google.genai import types
 import math
-from PyQt6.QtWidgets import QWidget, QLabel, QApplication
-from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer, QPropertyAnimation
+from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit, QPushButton
+from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QFont, QCursor
 from windows import get_windows, get_window_under_pet, get_window_center 
 
@@ -34,21 +36,43 @@ class DesktopPet(QWidget):
         self.setup_window()    # Configures the window and mouse tracking
         
         # 4. Setup EVERYTHING ELSE
-        self.setup_systems()
+        self.setup_systems()  # Fixed: No longer contains nested functions
         self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
         
         self.installEventFilter(self)
-        self.setup_global_listeners()
+        self.setup_global_listeners() 
 
         self.last_mouse_pos = QPoint(0, 0)
         self.mouse_velocity = 0
         self.is_squished = False
         self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
-
         self.target_x = 0
         self.target_y = 0
+
+    # -------------------------
+    # SYSTEMS
+    # -------------------------
+    def setup_systems(self):
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        # Configure Gemini
+        self.client = genai.Client(
+            api_key=os.getenv("GEMINI_API_KEY"),
+        )
+        # 2. Define the persona using a Config object
+        self.chat_config = types.GenerateContentConfig(
+            system_instruction="You are a digital cat. You start by giving encouragement. "
+                               "If the user talks back, be a cat: use puns, 'meow', and stay brief."
+        )
+        
+        # 3. Start the chat session
+        self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
+        
+        self.encouragement = EncouragementSystem(self)
+
 
     # -------------------------
     # WINDOW
@@ -91,29 +115,24 @@ class DesktopPet(QWidget):
     def set_state(self, new_state):
         if self.current_state == "speak" and new_state != "speak":
             self.text_bubble.hide()
+            self.chat_input.hide() 
+            self.reply_button.hide()
             self.current_encouragement = None
             self.last_speak_state = None
+            
         if new_state not in self.states:
-            print(f"Warning: unknown state '{new_state}'")
             return
 
-        # only run when state actually changes
         if self.current_state != new_state:
             self.current_state = new_state
-
-            # reset animation
-            self.frame_index = 0
+            self.frame_index = 0  
             self.frame_counter = 0
-
-            # reset timing
             self.state_timer = 0
 
-            # assign duration per state
             if new_state == "idle":
-                self.state_duration = random.randint(60, 300)
-
+                self.state_duration = random.randint(180, 420)
             elif new_state == "speak":
-                self.state_duration = random.randint(90, 210)
+                self.state_duration = random.randint(250, 400)
                 self.encouragement.trigger()
 
             elif new_state == "sleep":
@@ -124,6 +143,9 @@ class DesktopPet(QWidget):
             elif new_state == "walk":
                 self.state_duration = random.randint(60, 300)
                 self.MAX_SPEED = 2
+
+                max_x = self.width() - self.label.width()
+                max_y = self.height() - self.label.height()
 
                 windows = getattr(self, "obstacles", [])
                 self.current_window = get_window_under_pet(self, windows)
@@ -177,6 +199,9 @@ class DesktopPet(QWidget):
                     else:
                         self.target_x = random.randint(0, self.width() - self.label.width())
                         self.target_y = random.randint(0, self.height() - self.label.height())
+                
+                self.target_x = max(0, min(self.target_x, max_x))
+                self.target_y = max(0, min(self.target_y, max_y))
     
     
     # -------------------------
@@ -185,18 +210,10 @@ class DesktopPet(QWidget):
     def setup_sprite(self):
         self.label = QLabel(self)
         self.update_appearance()
-
         screen = QApplication.primaryScreen().geometry()
         center_x = (screen.width() - self.label.width()) // 2
         center_y = (screen.height() - self.label.height()) // 2
         self.label.move(center_x, center_y)
-
-
-    # -------------------------
-    # SYSTEMS
-    # -------------------------
-    def setup_systems(self):
-        self.encouragement = EncouragementSystem(self)
 
 
     # -------------------------
@@ -338,49 +355,88 @@ class DesktopPet(QWidget):
         if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
             self.label.resize(120, 120)
 
-        # animation frames
         self.frame_counter += 1
         fps = state_data.get("fps", 2)
-        # waits for ticks before advancing to the frame
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
             self.frame_index = (self.frame_index + 1) % len(frames)
 
-
     # -------------------------
-    # TEXT BUBBLE
+    # CHAT UI
     # -------------------------
     def setup_text_bubble(self):
         self.text_bubble = QLabel(self)
         self.text_bubble.setWordWrap(True)
-        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.text_bubble.setFont(QFont("Arial", 12))
+        self.text_bubble.setFont(QFont("Arial", 10))
         self.text_bubble.setStyleSheet(
             "color: black; background-color: rgba(255,255,255,0.9); "
-            "border-radius: 15px; padding: 10px;"
+            "border-radius: 10px; padding: 5px;"
         )
         self.text_bubble.hide()
 
+        # Reply Button
+        self.reply_button = QPushButton("Reply", self)
+        self.reply_button.setFixedWidth(40)
+        self.reply_button.setStyleSheet(
+            "background-color: #eee; color: black; border-radius: 5px; font-size: 10px;"
+        )
+        self.reply_button.hide()
+        self.reply_button.clicked.connect(self.show_chat_input)
 
-    # -------------------------
-    # UI HOOK (used by encouragement system)
-    # -------------------------
+        self.chat_input = QLineEdit(self)
+        self.chat_input.setPlaceholderText("Reply...")
+        self.chat_input.setStyleSheet("background: white; color: black; border: 1px solid #ccc; border-radius: 5px;")
+        self.chat_input.setFixedWidth(120)
+        self.chat_input.hide()
+        self.chat_input.returnPressed.connect(self.handle_chat_input)
+
+    def show_chat_input(self):
+        """Swaps the reply button for the text box."""
+        self.reply_button.hide()
+        self.chat_input.show()
+        self.chat_input.setFocus()
+
+    def handle_chat_input(self):
+        user_text = self.chat_input.text()
+        if not user_text: return
+        
+        self.chat_input.clear()
+        self.show_encouragement("...") 
+        
+        try:
+            response = self.chat_session.send_message(user_text)
+            self.state_timer = 0 
+            self.state_duration = random.randint(200, 300) 
+            self.show_encouragement(response.text)
+        except Exception as e:
+            print(f"Error: {e}")
+            self.show_encouragement("Meow... (Something went wrong with my brain!)")
+
     def show_encouragement(self, text):
         self.text_bubble.setText(text)
+        self.text_bubble.adjustSize()
+        
+        # Center bubble above cat
+        bubble_x = self.label.x() + (self.label.width() - self.text_bubble.width()) // 2
 
-        bubble_w = self.text_bubble.sizeHint().width()
-        bubble_h = self.text_bubble.sizeHint().height()
-
-        self.text_bubble.move(
-            self.label.x() + self.label.width() + 10,
-            self.label.y() + (self.label.height() - bubble_h) // 2
-        )
-
+        # Flip below if not enough room above
+        if self.label.y() - self.text_bubble.height() - 10 < 0:
+            bubble_y = self.label.y() + self.label.height() + 5 # below cat
+            button_y = bubble_y + self.text_bubble.height() + 5
+        else:
+            bubble_y = self.label.y() - self.text_bubble.height() - 10  # above cat
+            button_y = bubble_y + self.text_bubble.height() + 5
+        self.text_bubble.move(bubble_x, bubble_y)
         self.text_bubble.show()
 
+        # Center reply button below bubble
+        button_x = self.label.x() + (self.label.width() - self.reply_button.width()) // 2
+        self.reply_button.move(button_x, button_y)
+        self.reply_button.show()
+        self.chat_input.hide()
 
     # -------------------------
-    # EVENTS
+    # INTERACTION
     # -------------------------
     def setup_interaction(self):
         self.dragging = False
@@ -400,11 +456,12 @@ class DesktopPet(QWidget):
     def mouseMoveEvent(self, event):
         if self.dragging:
             new_pos = event.pos() - self.offset
-
             x = max(0, min(new_pos.x(), self.width() - self.label.width()))
             y = max(0, min(new_pos.y(), self.height() - self.label.height()))
-
             self.label.move(x, y)
+            # Update bubble position while dragging
+            if self.text_bubble.isVisible():
+                self.show_encouragement(self.text_bubble.text())
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
