@@ -2,8 +2,9 @@ import random
 from google import genai
 from google.genai import types # Needed for system instructions
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit, QPushButton
-from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer
+from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QFont
+from windows import get_windows, get_window_under_pet, get_window_center 
 
 from pynput import mouse as pynput_mouse
 from pynput import keyboard as pynput_keyboard
@@ -64,6 +65,9 @@ class DesktopPet(QWidget):
         self.encouragement = EncouragementSystem(self)
     
 
+        self.target_x = 0
+        self.target_y = 0
+
     # -------------------------
     # WINDOW
     # -------------------------
@@ -71,17 +75,25 @@ class DesktopPet(QWidget):
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
+        # Updated Flags for "True" Always-on-top behavior
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint |      # Removes title bar
+            Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
+            Qt.WindowType.SubWindow |                # Helps on some Linux distros
+            Qt.WindowType.X11BypassWindowManagerHint | # For Linux/X11
+            Qt.WindowType.Window                        # Hides from Taskbar + stays afloat
         )
+        
+        # This attribute is crucial for transparency and click-through
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        
+        # On some systems, the pet still "hides" when you click a window.
+        # This line forces the window to be visible.
+        self.show()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         self.setMouseTracking(True)  # Add this
         self.label.setMouseTracking(True) # And this for the sprite label
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-        self.setMouseTracking(True)
-        self.label.setMouseTracking(True)
     # -------------------------
     # STATES
     # -------------------------
@@ -121,11 +133,79 @@ class DesktopPet(QWidget):
             elif new_state == "speak":
                 self.state_duration = random.randint(150, 300) # Slightly longer for chat
                 self.encouragement.trigger()
+
             elif new_state == "sleep":
                 self.state_duration = 999999 # Stay asleep until woken up
                 if hasattr(self, 'text_bubble'):
                     self.text_bubble.hide()
+            
+            elif new_state == "walk":
+                self.state_duration = random.randint(60, 300)
 
+                self.MAX_SPEED = 2
+
+                # pick a random destination
+                windows = getattr(self, "obstacles", [])
+                current_window = get_window_under_pet(self, windows)
+
+                if current_window:
+                    choice = random.choices(
+                        ["leave", "stay"],
+                        weights=[0.3, 0.7]
+                    )[0]
+                else:
+                    choice = random.choices(
+                        ["enter", "free"],
+                        weights=[0.5, 0.5]
+                    )[0]
+                # -------------------------
+                # ENTER WINDOW
+                # -------------------------
+                if choice == "enter" and windows:
+                    w = random.choice(windows)
+
+                    self.target_x = random.randint(w["x1"], w["x2"] - self.label.width())
+                    self.target_y = random.randint(w["y1"], w["y2"] - self.label.height())
+
+                # -------------------------
+                # LEAVE WINDOW
+                # -------------------------
+                elif choice == "leave" and current_window:
+                    margin = 80
+
+                    left_max = current_window["x1"] - margin
+                    right_min = current_window["x2"] + margin
+
+                    options = []
+
+                    # LEFT side (only if valid)
+                    if left_max > 0:
+                        options.append((0, left_max))
+
+                    # RIGHT side (only if valid)
+                    if right_min < self.width():
+                        options.append((right_min, self.width()))
+
+                    # fallback if no valid options
+                    if not options:
+                        self.target_x = random.randint(0, self.width() - self.label.width())
+                    else:
+                        chosen = random.choice(options)
+                        self.target_x = random.randint(chosen[0], chosen[1])
+
+                    # Y can stay normal
+                    self.target_y = random.randint(0, self.height() - self.label.height())
+
+                # -------------------------
+                # FREE WALK
+                # -------------------------
+                else:
+                    self.target_x = random.randint(0, self.width() - self.label.width())
+                    self.target_y = random.randint(0, self.height() - self.label.height())
+            
+    # -------------------------
+    # SPRITE
+    # -------------------------
     def setup_sprite(self):
         self.label = QLabel(self)
         self.update_appearance()
@@ -177,24 +257,21 @@ class DesktopPet(QWidget):
         self.inactivity_timer = 0
 
     def tick(self):
-        # 1. Increment inactivity timer
+        self.update_obstacles()
+
         if not self.dragging:
             self.inactivity_timer += 1
 
-        # 2. Check for Sleep Trigger
         if self.inactivity_timer >= self.INACTIVITY_LIMIT:
             if self.current_state != "sleep":
                 self.set_state("sleep")
         else:
-            # If the timer was reset by global input, wake up!
             if self.current_state == "sleep":
                 self.set_state("idle")
 
-        # 3. Process Behavior (Only if not sleeping)
         if self.current_state != "sleep":
             update_behavior(self)
-            
-        # 4. Final Visual Render
+
         self.update_appearance()
 
     def closeEvent(self, event):
@@ -206,19 +283,34 @@ class DesktopPet(QWidget):
         event.accept()
     def update_appearance(self):
         state_data = self.states.get(self.current_state)
-        if not state_data: return
 
+        if not state_data:
+            print(f"Error: missing state '{self.current_state}'")
+            return
+
+        # This ensures 'frames' is defined for the rest of the function
         frames = state_data["frames"]
         pixmap = frames[self.frame_index]
-        scaled = pixmap.scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
+        # Use FastTransformation for crisp pixel art clarity
+        scaled = pixmap.scaled(
+            120, 120,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.FastTransformation
+        )
 
         self.label.setPixmap(scaled)
-        self.label.resize(scaled.size())
+        
+        # Only resize the label if the movement animation ISN'T running
+        # This prevents the pet from 'stuttering' during the sleep crawl
+        if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
+            self.label.resize(scaled.size())
 
         self.frame_counter += 1
         fps = state_data.get("fps", 2)
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
+            # Use the frames variable we defined above
             self.frame_index = (self.frame_index + 1) % len(frames)
 
     # -------------------------
@@ -323,3 +415,30 @@ class DesktopPet(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
+        if self.current_state != "speak":
+            self.encouragement.trigger()
+
+    def resizeEvent(self, event):
+        self.label.move(
+            (self.width() - self.label.width()) // 2,
+            (self.height() - self.label.height()) // 2
+        )
+
+    # -------------------------
+    # OBSTACLE AVOIDANCE
+    # -------------------------
+    def update_obstacles(self):
+        self.obstacles = get_windows()
+
+
+    def set_intent(self, x, y):
+        self.intent_x = x
+        self.intent_y = y
+
+    
+    def is_full_block(self, w):
+        return (
+            w["x1"] <= 0 and w["y1"] <= 0 and
+            w["x2"] >= self.width() and
+            w["y2"] >= self.height()
+        )

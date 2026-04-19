@@ -1,6 +1,9 @@
 import random
 from encouragement import EncouragementSystem
 
+# -------------------------
+# MAIN BEHAVIOR LOOP
+# -------------------------
 def update_behavior(pet):
     # If the user is typing, don't tick the state timer
     if pet.chat_input.hasFocus():
@@ -21,7 +24,7 @@ def update_behavior(pet):
     elif pet.current_state == "walk":
         walk(pet)
 
-        if pet.state_timer >= pet.state_duration:
+        if reached_target(pet):
             pet.set_state("idle")
 
     elif pet.current_state == "speak":
@@ -33,33 +36,55 @@ def update_behavior(pet):
             pet.set_state("idle")
 
 
+# -------------------------
+# IDLE STATE
+# -------------------------
 def idle(pet):
+    # stays still (you can add small idle animation later)
+    pass
 
-    pet.label.move(
-        pet.label.x() + 0,
-        pet.label.y() + 0
-    )
 
-def walk(pet): #consider implimenting weighted wandering AI (chooses destination)
+# -------------------------
+# WALK STATE (TARGET BASED)
+# -------------------------
+def walk(pet):
     x = pet.label.x()
     y = pet.label.y()
 
-    # move pet
-    x += pet.dx
-    y += pet.dy
+    dx = pet.target_x - x
+    dy = pet.target_y - y
 
-    # screen bounds (bounce)
-    max_x = pet.width() - pet.label.width()
-    max_y = pet.height() - pet.label.height()
+    step = pet.MAX_SPEED
 
-    if x <= 0 or x >= max_x:
-        pet.dx *= -1
+    # move toward target
+    if abs(dx) > step:
+        x += step if dx > 0 else -step
+    else:
+        x = pet.target_x
 
-    if y <= 0 or y >= max_y:
-        pet.dy *= -1
+    if abs(dy) > step:
+        y += step if dy > 0 else -step
+    else:
+        y = pet.target_y
 
     pet.label.move(x, y)
 
+    # STOP when target reached
+    if (
+        abs(x - pet.target_x) < 3 and
+        abs(y - pet.target_y) < 3
+    ):
+        pet.set_state("idle")
+
+
+# -------------------------
+# TARGET CHECK
+# -------------------------
+def reached_target(pet):
+    return (
+        abs(pet.label.x() - pet.target_x) < 3 and
+        abs(pet.label.y() - pet.target_y) < 3
+    )
 def speak(pet):
     pass
 
