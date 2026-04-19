@@ -2,6 +2,7 @@ import random
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
 from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QFont
+from windows import get_windows, get_window_under_pet, get_window_center 
 
 from states import load_states
 from behavior import update_behavior
@@ -21,6 +22,9 @@ class DesktopPet(QWidget):
         self.setup_systems()
         self.setup_timers()
         self.setup_interaction()
+
+        self.target_x = 0
+        self.target_y = 0
 
     # -------------------------
     # WINDOW
@@ -64,16 +68,74 @@ class DesktopPet(QWidget):
 
             # assign duration per state
             if new_state == "idle":
-                self.state_duration = random.randint(180, 420)
-
-            elif new_state == "walk":
                 self.state_duration = random.randint(60, 300)
 
-                # set movement ONCE
-                self.MAX_SPEED = 3
-                self.dx = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
-                self.dy = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
+            elif self.current_state == "walk":
+                self.state_duration = random.randint(60, 300)
 
+                self.MAX_SPEED = 2
+
+                # pick a random destination
+                windows = getattr(self, "obstacles", [])
+                current_window = get_window_under_pet(self, windows)
+
+                if current_window:
+                    choice = random.choices(
+                        ["leave", "stay"],
+                        weights=[0.3, 0.7]
+                    )[0]
+                else:
+                    choice = random.choices(
+                        ["enter", "free"],
+                        weights=[0.5, 0.5]
+                    )[0]
+                # -------------------------
+                # ENTER WINDOW
+                # -------------------------
+                if choice == "enter" and windows:
+                    w = random.choice(windows)
+
+                    self.target_x = random.randint(w["x1"], w["x2"] - self.label.width())
+                    self.target_y = random.randint(w["y1"], w["y2"] - self.label.height())
+
+                # -------------------------
+                # LEAVE WINDOW
+                # -------------------------
+                elif choice == "leave" and current_window:
+                    margin = 80
+
+                    left_max = current_window["x1"] - margin
+                    right_min = current_window["x2"] + margin
+
+                    options = []
+
+                    # LEFT side (only if valid)
+                    if left_max > 0:
+                        options.append((0, left_max))
+
+                    # RIGHT side (only if valid)
+                    if right_min < self.width():
+                        options.append((right_min, self.width()))
+
+                    # fallback if no valid options
+                    if not options:
+                        self.target_x = random.randint(0, self.width() - self.label.width())
+                    else:
+                        chosen = random.choice(options)
+                        self.target_x = random.randint(chosen[0], chosen[1])
+
+                    # Y can stay normal
+                    self.target_y = random.randint(0, self.height() - self.label.height())
+
+                    self.target_y = random.randint(0, self.height())
+
+                # -------------------------
+                # FREE WALK
+                # -------------------------
+                else:
+                    self.target_x = random.randint(0, self.width() - self.label.width())
+                    self.target_y = random.randint(0, self.height() - self.label.height())
+            
     # -------------------------
     # SPRITE
     # -------------------------
@@ -119,6 +181,7 @@ class DesktopPet(QWidget):
     # -------------------------
     def tick(self):
         update_behavior(self)
+        self.update_obstacles()
         self.update_appearance()
 
     # -------------------------
@@ -206,6 +269,21 @@ class DesktopPet(QWidget):
             (self.height() - self.label.height()) // 2
         )
 
-    def closeEvent(self, event):
-        self.encouragement_timer.stop()
+    # -------------------------
+    # OBSTACLE AVOIDANCE
+    # -------------------------
+    def update_obstacles(self):
+        self.obstacles = get_windows()
 
+
+    def set_intent(self, x, y):
+        self.intent_x = x
+        self.intent_y = y
+
+    
+    def is_full_block(self, w):
+        return (
+            w["x1"] <= 0 and w["y1"] <= 0 and
+            w["x2"] >= self.width() and
+            w["y2"] >= self.height()
+        )
