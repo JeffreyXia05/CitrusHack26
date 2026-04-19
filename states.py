@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(__file__)
 ASSETS = os.path.join(BASE_DIR, "assets")
 
 
-def load_states(option):
+def load_states(option, settings):
     # -------------------------
     # SELECT SPRITE SHEET
     # -------------------------
@@ -56,9 +56,9 @@ def load_states(option):
         get_frames(row=52, frame_count=4) * 3 + get_frames(row=0, frame_count=1) * 4
     ]
     # -------------------------
-    # WALK (8 directions)
+    # WALK (8 directions) and (spinning walk)
     # -------------------------
-    walk_frames = {
+    normal_walk = {
         "down": get_frames(row=4, frame_count=4),
         "down_left": get_frames(row=8, frame_count=6),
         "left": get_frames(row=7, frame_count=8),
@@ -68,6 +68,19 @@ def load_states(option):
         "right": get_frames(row=6, frame_count=6),
         "down_right": get_frames(row=9, frame_count=6),
     }
+
+    weird_walk = {
+        "down": get_frames(row=1, frame_count=8),
+        "down_left": get_frames(row=1, frame_count=8),
+        "left": get_frames(row=1, frame_count=8),
+        "up_left": get_frames(row=1, frame_count=8),
+        "up": get_frames(row=1, frame_count=8),
+        "up_right": get_frames(row=1, frame_count=8),
+        "right": get_frames(row=1, frame_count=8),
+        "down_right": get_frames(row=1, frame_count=8),
+    }
+
+    walk_frames = weird_walk if settings.get("weirdWalk", True) else normal_walk
 
     # -------------------------
     # SLEEP
@@ -100,19 +113,19 @@ def load_states(option):
         "idle": {
             "variants": idle_variants,
             "fps": 4
-        },
+        } if settings.get("idle", True) else None,
         "walk": {
             "frames": walk_frames, 
             "fps": 12
-        },
+        } if settings.get("walk", True) else None,
         "sleep": {
             "variants": sleep_variants,
             "fps": 1
-        },
+        } if settings.get("sleep", True) else None,
         "speak": {
             "frames": speak_frames,
             "fps": 4
-        },
+        } if settings.get("speak", True) else None,
         "drag": {
             "frames": drag_frames,
             "fps": 1

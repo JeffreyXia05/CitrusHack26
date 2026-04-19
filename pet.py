@@ -13,10 +13,10 @@ from pynput import keyboard as pynput_keyboard
 from states import load_states
 from behavior import update_behavior
 from encouragement import EncouragementSystem
-from voice import VoiceManager #delete this
+from voice import VoiceManager 
 
 class DesktopPet(QWidget):
-    def __init__(self, option):
+    def __init__(self, option, settings):
         super().__init__()
 
         # initialized variables for the pet's behavior, animation, and screen size
@@ -28,6 +28,13 @@ class DesktopPet(QWidget):
         self.INACTIVITY_LIMIT = 30 * 60 
         self.dragging = False 
         self.option = option
+        self.settings = settings
+
+        # initialization for settings
+        self.idle = settings.get("idle", True)
+        self.walk = settings.get("walk", True)
+        self.speak = settings.get("speak", True)
+        self.sleep = settings.get("sleep", True)
 
         # states initialization
         self.setup_states()
@@ -38,7 +45,9 @@ class DesktopPet(QWidget):
         
         # systems and gimmicks related stuff
         self.setup_systems() 
-        self.setup_text_bubble()
+        if self.speak:
+            self.setup_text_bubble()
+
         self.setup_timers()
         self.setup_interaction()
         self.setup_global_listeners() 
@@ -72,11 +81,12 @@ class DesktopPet(QWidget):
         # start the chat session
         self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
         
-        self.encouragement = EncouragementSystem(self)
+        if self.speak:
+            self.encouragement = EncouragementSystem(self)
         
         # elevenlabs voice setup
         api_key = os.getenv("ELEVEN_API_KEY")
-        self.voice_manager = VoiceManager(api_key) #delete this
+        self.voice_manager = VoiceManager(api_key)
 
 
     # --------------------------------------------------------------------------------------------------
@@ -98,12 +108,10 @@ class DesktopPet(QWidget):
         # This attribute is crucial for transparency and click-through
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         
-        # On some systems, the pet still "hides" when you click a window.
-        # This line forces the window to be visible.
         self.show()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setMouseTracking(True)  # Add this
-        self.label.setMouseTracking(True) # And this for the sprite label
+        self.setMouseTracking(True)  
+        self.label.setMouseTracking(True) 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         
@@ -111,7 +119,7 @@ class DesktopPet(QWidget):
     # STATES
     # --------------------------------------------------------------------------------------------------
     def setup_states(self):
-        self.states = load_states(self.option)
+        self.states = load_states(self.option, self.settings)
         self.current_state = "idle"
         self.dx = 0
         self.dy = 0
@@ -124,7 +132,7 @@ class DesktopPet(QWidget):
         
 
     def set_state(self, new_state):
-        if self.current_state == "speak" and new_state != "speak":
+        if self.current_state == "speak" and new_state != "speak" and self.speak:
             self.text_bubble.hide()
             self.chat_input.hide() 
             self.reply_button.hide()
@@ -140,24 +148,25 @@ class DesktopPet(QWidget):
             self.frame_counter = 0
             self.state_timer = 0
 
-            if new_state == "idle":
+            if new_state == "idle" and self.idle:
                 self.state_duration = random.randint(360, 600)
                 idle_variants = self.states["idle"]["variants"]
                 self.current_idle_frames = random.choice(idle_variants)
-            elif new_state == "speak":
+            elif new_state == "speak" and self.speak:
                 self.state_duration = random.randint(250, 400)
                 self.encouragement.trigger()
 
-            elif new_state == "sleep":
+            elif new_state == "sleep" and self.sleep:
                 self.state_duration = 999999 # Stay asleep until woken up
                 sleep_variants = self.states["sleep"]["variants"]
                 self.current_sleep_frames = random.choice(sleep_variants)
                 self.frame_index = 0
                 
-                if hasattr(self, 'text_bubble'):
-                    self.text_bubble.hide()
+                if self.speak:
+                    if hasattr(self, 'text_bubble'):
+                        self.text_bubble.hide()
             
-            elif new_state == "walk":
+            elif new_state == "walk" and self.walk:
                 self.state_duration = random.randint(60, 300)
                 self.MAX_SPEED = 2
 
@@ -209,7 +218,7 @@ class DesktopPet(QWidget):
                 else:
                     choice = random.choices(
                         ["enter", "free"],
-                        weights=[0.2, 0.8]  #mostly stay out
+                        weights=[0.2, 0.8] 
                     )[0]
 
                     if choice == "enter" and windows:
@@ -250,10 +259,7 @@ class DesktopPet(QWidget):
     # SLEEP RELATED
     # --------------------------------------------------------------------------------------------------
     def on_global_input(self, *args):
-        # This is called whenever ANYTHING happens on the computer
         self.inactivity_timer = 0
-        # If the pet is sleeping, we need to wake it up
-
 
     def eventFilter(self, obj, event):
         # Detect Mouse Movement, Clicks, or Keyboard Presses
@@ -314,7 +320,7 @@ class DesktopPet(QWidget):
                 self.set_state("idle")
 
         if self.current_state != "sleep":
-            update_behavior(self)
+            update_behavior(self, self.idle, self.walk, self.speak, self.sleep)
 
         # Update visual frame
         self.update_appearance()
@@ -468,7 +474,7 @@ class DesktopPet(QWidget):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
 
-        if hasattr(self, 'voice_manager'): #delete this later
+        if hasattr(self, 'voice_manager') and self.speak: #delete this later
                 self.voice_manager.say(text)
         
         # Center bubble above cat
@@ -509,7 +515,6 @@ class DesktopPet(QWidget):
                 self.dragging = True
                 self.offset = event.pos() - self.label.pos()
                 
-                # FIX: Check if 'animation' exists before calling .stop() 
                 if hasattr(self, 'animation'):
                     self.animation.stop() 
                 
@@ -539,12 +544,13 @@ class DesktopPet(QWidget):
             y = max(0, min(new_pos.y(), self.height() - self.label.height()))
             self.label.move(x, y)
             # Update bubble position while dragging
-            if self.text_bubble.isVisible():
-                self.show_encouragement(self.text_bubble.text())
+            if self.speak:
+                if self.text_bubble.isVisible():
+                    self.show_encouragement(self.text_bubble.text())
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
-        if self.current_state != "speak":
+        if self.current_state != "speak" and self.speak:
             self.encouragement.trigger()
         self.set_state("idle")
 
