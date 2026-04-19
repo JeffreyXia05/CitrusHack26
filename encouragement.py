@@ -19,7 +19,9 @@ ENCOURAGEMENT_WORDS = [
     "Stay positive!",
     "You've got this!",
     "Keep shining!",
-    "You're amazing!"
+    "You're amazing!",
+    "Go go go!!!",
+    "I'm itchy"
 ]
 
 

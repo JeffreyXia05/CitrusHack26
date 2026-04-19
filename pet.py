@@ -1,7 +1,7 @@
 import random
-from google import genai # Updated import
+from google import genai
 from google.genai import types # Needed for system instructions
-from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit
+from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer
 from PyQt6.QtGui import QFont
 
@@ -33,13 +33,13 @@ class DesktopPet(QWidget):
         self.setup_window()    # Configures the window and mouse tracking
         
         # 4. Setup EVERYTHING ELSE
-        self.setup_systems()
+        self.setup_systems()  # Fixed: No longer contains nested functions
         self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
         
         self.installEventFilter(self)
-        self.setup_global_listeners()
+        self.setup_global_listeners() 
 
     # -------------------------
     # SYSTEMS
@@ -97,7 +97,8 @@ class DesktopPet(QWidget):
     def set_state(self, new_state):
         if self.current_state == "speak" and new_state != "speak":
             self.text_bubble.hide()
-            self.chat_input.hide() # Added: Hide input when leaving speak state
+            self.chat_input.hide() 
+            self.reply_button.hide()
             self.current_encouragement = None
             self.last_speak_state = None
             
@@ -175,9 +176,6 @@ class DesktopPet(QWidget):
         # and change the state from "sleep" to "idle" automatically.
         self.inactivity_timer = 0
 
-    # -------------------------
-    # MAIN LOOP
-    # -------------------------
     def tick(self):
         # 1. Increment inactivity timer
         if not self.dragging:
@@ -206,9 +204,6 @@ class DesktopPet(QWidget):
         if hasattr(self, 'k_listener'):
             self.k_listener.stop()
         event.accept()
-    # -------------------------
-    # APPEARANCE
-    # -------------------------
     def update_appearance(self):
         state_data = self.states.get(self.current_state)
         if not state_data: return
@@ -240,12 +235,27 @@ class DesktopPet(QWidget):
         )
         self.text_bubble.hide()
 
+        # Reply Button
+        self.reply_button = QPushButton("Reply", self)
+        self.reply_button.setFixedWidth(60)
+        self.reply_button.setStyleSheet(
+            "background-color: #eee; color: black; border-radius: 5px; font-size: 10px;"
+        )
+        self.reply_button.hide()
+        self.reply_button.clicked.connect(self.show_chat_input)
+
         self.chat_input = QLineEdit(self)
         self.chat_input.setPlaceholderText("Reply...")
-        self.chat_input.setStyleSheet("background: white; border: 1px solid #ccc; border-radius: 5px;")
+        self.chat_input.setStyleSheet("background: white; color: black; border: 1px solid #ccc; border-radius: 5px;")
         self.chat_input.setFixedWidth(120)
         self.chat_input.hide()
         self.chat_input.returnPressed.connect(self.handle_chat_input)
+
+    def show_chat_input(self):
+        """Swaps the reply button for the text box."""
+        self.reply_button.hide()
+        self.chat_input.show()
+        self.chat_input.setFocus()
 
     def handle_chat_input(self):
         user_text = self.chat_input.text()
@@ -274,10 +284,14 @@ class DesktopPet(QWidget):
         )
         self.text_bubble.show()
 
-        # Position input below the bubble
-        self.chat_input.move(self.label.x(), self.label.y() + self.label.height() + 5)
-        self.chat_input.show()
-        self.chat_input.setFocus()
+        self.reply_button.move(
+            self.label.x() + (self.label.width() // 2) - 30,
+            self.label.y() - 10 
+        )
+        self.reply_button.show()
+        
+        # Ensure input box is hidden initially
+        self.chat_input.hide()
 
     # -------------------------
     # INTERACTION

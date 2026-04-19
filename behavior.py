@@ -3,7 +3,7 @@ from encouragement import EncouragementSystem
 
 def update_behavior(pet):
     # If the user is typing, don't tick the state timer
-    if pet.chat_input.isVisible():
+    if pet.chat_input.hasFocus():
         return 
 
     if pet.current_state == "sleep":
@@ -28,6 +28,8 @@ def update_behavior(pet):
         speak(pet)
 
         if pet.state_timer >= pet.state_duration:
+            pet.text_bubble.hide()
+            pet.chat_input.hide()
             pet.set_state("idle")
 
 
