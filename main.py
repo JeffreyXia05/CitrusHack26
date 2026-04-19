@@ -7,9 +7,9 @@ class AppController:
     def __init__(self):
         self.pet = None
 
-    def deploy_pet(self):
+    def deploy_pet(self, option):
         if self.pet is None:
-            self.pet = DesktopPet()
+            self.pet = DesktopPet(option)
             self.pet.show()
 
 def main():
