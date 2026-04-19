@@ -1,21 +1,32 @@
 import random
+from encouragement import EncouragementSystem
 
 # -------------------------
 # MAIN BEHAVIOR LOOP
 # -------------------------
 def update_behavior(pet):
+    if pet.current_state == "sleep":
+        sleep(pet)
+        return
+    
     pet.state_timer += 1
 
     if pet.current_state == "idle":
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("walk")
+            pet.set_state("speak" if random.random() < 0.3 else "walk")
 
     elif pet.current_state == "walk":
         walk(pet)
 
         if reached_target(pet):
+            pet.set_state("idle")
+
+    elif pet.current_state == "speak":
+        speak(pet)
+
+        if pet.state_timer >= pet.state_duration:
             pet.set_state("idle")
 
 
@@ -52,7 +63,7 @@ def walk(pet):
 
     pet.label.move(x, y)
 
-    # ✅ STOP when target reached
+    # STOP when target reached
     if (
         abs(x - pet.target_x) < 3 and
         abs(y - pet.target_y) < 3
@@ -68,3 +79,10 @@ def reached_target(pet):
         abs(pet.label.x() - pet.target_x) < 3 and
         abs(pet.label.y() - pet.target_y) < 3
     )
+def speak(pet):
+    pass
+
+def sleep(pet):
+    # Pet stays still. 
+    # Animation is handled automatically by update_appearance in pet.py
+    pass

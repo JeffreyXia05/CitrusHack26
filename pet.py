@@ -1,8 +1,11 @@
 import random
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
-from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QFont
 from windows import get_windows, get_window_under_pet, get_window_center 
+
+from pynput import mouse as pynput_mouse
+from pynput import keyboard as pynput_keyboard
 
 from states import load_states
 from behavior import update_behavior
@@ -12,16 +15,30 @@ class DesktopPet(QWidget):
     def __init__(self):
         super().__init__()
 
+        # 1. Initialize basic variables first
         self.frame_counter = 0
         self.frame_index = 0
+        self.last_speak_state = None
+        self.current_encouragement = None
+        self.inactivity_timer = 0
+        self.INACTIVITY_LIMIT = 30 * 60 
+        self.dragging = False  # Ensure this exists early
 
-        self.setup_window()
-        self.setup_states()
-        self.setup_sprite()
-        self.setup_text_bubble()
+        # 2. Setup DATA (This must come before visuals)
+        self.setup_states()    # This creates self.states and self.current_state
+
+        # 3. Setup VISUALS (Now update_appearance will work)
+        self.setup_sprite()    # Creates self.label and calls update_appearance
+        self.setup_window()    # Configures the window and mouse tracking
+        
+        # 4. Setup EVERYTHING ELSE
         self.setup_systems()
+        self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
+        
+        self.installEventFilter(self)
+        self.setup_global_listeners()
 
         self.target_x = 0
         self.target_y = 0
@@ -33,12 +50,25 @@ class DesktopPet(QWidget):
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
+        # Updated Flags for "True" Always-on-top behavior
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.WindowStaysOnTopHint |
-            Qt.WindowType.Tool
+            Qt.WindowType.FramelessWindowHint |      # Removes title bar
+            Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
+            Qt.WindowType.SubWindow |                # Helps on some Linux distros
+            Qt.WindowType.X11BypassWindowManagerHint | # For Linux/X11
+            Qt.WindowType.Window                        # Hides from Taskbar + stays afloat
         )
+        
+        # This attribute is crucial for transparency and click-through
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        
+        # On some systems, the pet still "hides" when you click a window.
+        # This line forces the window to be visible.
+        self.show()
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
+        self.setMouseTracking(True)  # Add this
+        self.label.setMouseTracking(True) # And this for the sprite label
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
     # -------------------------
     # STATES
     # -------------------------
@@ -49,8 +79,13 @@ class DesktopPet(QWidget):
         self.dy = 0
         self.state_timer = 0
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
+        self.current_state = "idle"
 
     def set_state(self, new_state):
+        if self.current_state == "speak" and new_state != "speak":
+            self.text_bubble.hide()
+            self.current_encouragement = None
+            self.last_speak_state = None
         if new_state not in self.states:
             print(f"Warning: unknown state '{new_state}'")
             return
@@ -70,7 +105,16 @@ class DesktopPet(QWidget):
             if new_state == "idle":
                 self.state_duration = random.randint(60, 300)
 
-            elif self.current_state == "walk":
+            elif new_state == "speak":
+                self.state_duration = random.randint(90, 210)
+                self.encouragement.trigger()
+
+            elif new_state == "sleep":
+                self.state_duration = 999999 # Stay asleep until woken up
+                if hasattr(self, 'text_bubble'):
+                    self.text_bubble.hide()
+            
+            elif new_state == "walk":
                 self.state_duration = random.randint(60, 300)
 
                 self.MAX_SPEED = 2
@@ -127,8 +171,6 @@ class DesktopPet(QWidget):
                     # Y can stay normal
                     self.target_y = random.randint(0, self.height() - self.label.height())
 
-                    self.target_y = random.randint(0, self.height())
-
                 # -------------------------
                 # FREE WALK
                 # -------------------------
@@ -148,19 +190,6 @@ class DesktopPet(QWidget):
         center_y = (screen.height() - self.label.height()) // 2
         self.label.move(center_x, center_y)
 
-    # =========================
-    # TEXT BUBBLE
-    # =========================
-    def setup_text_bubble(self):
-        self.text_bubble = QLabel(self)
-        self.text_bubble.setWordWrap(True)
-        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.text_bubble.setFont(QFont("Arial", 12))
-        self.text_bubble.setStyleSheet(
-            "color: black; background-color: rgba(255,255,255,0.9); "
-            "border-radius: 15px; padding: 10px;"
-        )
-        self.text_bubble.hide()
 
     # =========================
     # SYSTEMS
@@ -176,14 +205,71 @@ class DesktopPet(QWidget):
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
 
+    # =========================
+    # SLEEP RELATED
+    # =========================
+
+    def on_global_input(self, *args):
+        # This is called whenever ANYTHING happens on the computer
+        # Since this runs in a background thread, we reset the timer safely
+        self.inactivity_timer = 0
+        
+        # If the pet is sleeping, we need to wake it up
+        # Note: We don't change UI here directly because this is a different thread
+        # The tick() function will handle the state switch next frame
+
+    def eventFilter(self, obj, event):
+        # Detect Mouse Movement, Clicks, or Keyboard Presses
+        if event.type() in [
+            QEvent.Type.MouseMove, 
+            QEvent.Type.MouseButtonPress, 
+            QEvent.Type.KeyPress
+        ]:
+            self.wake_up()
+        
+        return super().eventFilter(obj, event)
+
+    def setup_global_listeners(self):
+        # Ensure these names match what is in closeEvent
+        self.m_listener = pynput_mouse.Listener(on_move=lambda x, y: self.wake_up())
+        self.k_listener = pynput_keyboard.Listener(on_press=lambda key: self.wake_up())
+        
+        self.m_listener.start()
+        self.k_listener.start()
+
+    def wake_up(self):
+        # This resets the timer. The tick() function will see this 
+        # and change the state from "sleep" to "idle" automatically.
+        self.inactivity_timer = 0
+
     # -------------------------
     # MAIN LOOP
     # -------------------------
     def tick(self):
-        update_behavior(self)
         self.update_obstacles()
+
+        if not self.dragging:
+            self.inactivity_timer += 1
+
+        if self.inactivity_timer >= self.INACTIVITY_LIMIT:
+            if self.current_state != "sleep":
+                self.set_state("sleep")
+        else:
+            if self.current_state == "sleep":
+                self.set_state("idle")
+
+        if self.current_state != "sleep":
+            update_behavior(self)
+
         self.update_appearance()
 
+    def closeEvent(self, event):
+        # Check if they exist before stopping to prevent errors on early exit
+        if hasattr(self, 'm_listener'):
+            self.m_listener.stop()
+        if hasattr(self, 'k_listener'):
+            self.k_listener.stop()
+        event.accept()
     # -------------------------
     # APPEARANCE
     # -------------------------
@@ -194,27 +280,45 @@ class DesktopPet(QWidget):
             print(f"Error: missing state '{self.current_state}'")
             return
 
+        # This ensures 'frames' is defined for the rest of the function
         frames = state_data["frames"]
-
         pixmap = frames[self.frame_index]
 
+        # Use FastTransformation for crisp pixel art clarity
         scaled = pixmap.scaled(
             120, 120,
             Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+            Qt.TransformationMode.FastTransformation
         )
 
         self.label.setPixmap(scaled)
-        self.label.resize(scaled.size())
+        
+        # Only resize the label if the movement animation ISN'T running
+        # This prevents the pet from 'stuttering' during the sleep crawl
+        if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
+            self.label.resize(scaled.size())
 
         # ---- animation timing ----
         self.frame_counter += 1
-
         fps = state_data.get("fps", 2)
 
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
+            # Use the frames variable we defined above
             self.frame_index = (self.frame_index + 1) % len(frames)
+    # =========================
+    # TEXT BUBBLE
+    # =========================
+    def setup_text_bubble(self):
+        self.text_bubble = QLabel(self)
+        self.text_bubble.setWordWrap(True)
+        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.text_bubble.setFont(QFont("Arial", 12))
+        self.text_bubble.setStyleSheet(
+            "color: black; background-color: rgba(255,255,255,0.9); "
+            "border-radius: 15px; padding: 10px;"
+        )
+        self.text_bubble.hide()
 
     # =========================
     # UI HOOK (used by encouragement system)
@@ -261,7 +365,8 @@ class DesktopPet(QWidget):
 
     def mouseReleaseEvent(self, event):
         self.dragging = False
-        self.encouragement.trigger()
+        if self.current_state != "speak":
+            self.encouragement.trigger()
 
     def resizeEvent(self, event):
         self.label.move(

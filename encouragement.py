@@ -1,5 +1,7 @@
 import random
-from PyQt6.QtCore import QTimer
+from PyQt6.QtWidgets import QWidget, QLabel, QApplication
+from PyQt6.QtCore import Qt, QPoint, QTimer
+from PyQt6.QtGui import QFont
 
 
 ENCOURAGEMENT_WORDS = [
@@ -37,6 +39,7 @@ class EncouragementSystem:
 
         self.show_random_encouragement()
 
+
     def show_random_encouragement(self):
         """Pick and display a message."""
 
@@ -47,6 +50,11 @@ class EncouragementSystem:
             return
 
         word = random.choice(ENCOURAGEMENT_WORDS)
-        self.pet.show_encouragement(word)
+        if self.pet.current_state == "speak":
+            if self.pet.last_speak_state != "speak":
+                self.pet.last_speak_state = "speak"
+                self.pet.current_encouragement = random.choice(ENCOURAGEMENT_WORDS)
+
+                self.pet.show_encouragement(self.pet.current_encouragement)
 
         self.timer.start(3000)
