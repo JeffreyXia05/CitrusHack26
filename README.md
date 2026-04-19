@@ -16,28 +16,24 @@ CitrusPet is an AI-powered desktop companion designed to combat the isolation of
 ### Installation
 
 To get CitrusPet running locally, follow these steps:
-  1. Install FFmpeg (Required for audio playback):
-     
-    scoop install ffmpeg
-  
-  2. Clone the Repository:
+  1. Clone the Repository:
 
     git clone https://github.com/yourusername/CitrusPet.git
     cd CitrusPet
 
-  3. Install Dependencies:
+  2. Install Dependencies:
 
         Note: We recommend Python 3.12 for compatibility with Pygame wheels.
 
     pip install PyQt6 google-genai python-dotenv elevenlabs pygame pywin32 pynput
 
-  4. Set Up Environment Variables:
+  3. Set Up Environment Variables:
      
     Create a .env file in the root directory and add your keys:
     GEMINI_API_KEY=your_key_here
     ELEVENLABS_API_KEY=your_key_here
 
-  5. Run the App:
+  4. Run the App:
 
     python main.py
 
