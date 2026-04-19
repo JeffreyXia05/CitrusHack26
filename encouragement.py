@@ -22,7 +22,9 @@ ENCOURAGEMENT_WORDS = [
     "I'm itchy"
 ]
 
-# shows random encouragement messages in speak mode every 3-15 seconds, and also speaks them out loud using ElevenLabs voice manager
+# ------------------------------------------------------------------------------------------
+# PHRASES OF ENCOURGEMENT
+# ------------------------------------------------------------------------------------------
 class EncouragementSystem:
     def __init__(self, pet):
         self.pet = pet

@@ -4,6 +4,9 @@ import pygame
 import threading
 from elevenlabs.client import ElevenLabs
 
+# ------------------------------------------------------------------------------------------
+# VOICE MANAGER
+# ------------------------------------------------------------------------------------------
 class VoiceManager:
     def __init__(self, api_key):
         self.client = ElevenLabs(api_key=api_key)

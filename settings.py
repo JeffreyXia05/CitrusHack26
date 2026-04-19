@@ -2,6 +2,9 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QRadioButton, QWidget, QPushButton, QVBoxLayout, QDialog, QLabel
 )
 
+# ------------------------------------------------------------------------------------------
+# CUSTOMIZABLE SETTINGS
+# ------------------------------------------------------------------------------------------
 class SettingsDialog(QDialog):
     def __init__(self):
         super().__init__()
