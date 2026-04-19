@@ -4,6 +4,9 @@ from PyQt6.QtWidgets import (
 
 from settings import SettingsDialog
 
+# ------------------------------------------------------------------------------------------
+#  LAUNCHER
+# ------------------------------------------------------------------------------------------
 class Launcher(QWidget):
     def __init__(self, on_deploy):
         super().__init__()
@@ -52,14 +55,14 @@ class Launcher(QWidget):
 
     def open_instructions(self):
         instructions_layout = QVBoxLayout()
-        instructions_layout.addWidget(QLabel("Instructions:"))
-        instructions_layout.addWidget(QLabel("1. Click 'Deploy Pet' to see your pet come to life!"))
-        instructions_layout.addWidget(QLabel("2. Use the 'Settings' button to customize your pet's behavior and appearance."))
-        instructions_layout.addWidget(QLabel("3. Interact with your pet by dragging it or petting it."))
-        instructions_layout.addWidget(QLabel("4. Right click on your pet to make it take a nap and right click again to wake it up!"))
-        instructions_layout.addWidget(QLabel("5. Leave the screen idle for 30 seconds to see it take a nap!"))
-        instructions_layout.addWidget(QLabel("6. Talk to your pet by typing in the chat input when it talks to you!"))
-        instructions_layout.addWidget(QLabel("7. Enjoy your new desktop companion!"))
+        instructions_layout.addWidget(QLabel("Thank you for using PCat! Here are some tips to get you started:"))
+        instructions_layout.addWidget(QLabel("This virtual cat will explore your computer and sometimes take in the view (or maybe do some self care)")),
+        instructions_layout.addWidget(QLabel("It may even talk to you sometimes, giving you encouragement or just random cat thoughts!")),
+        instructions_layout.addWidget(QLabel("When it does so, give it some love by responding in the chat box! It loves attention and will respond to your messages!")),
+        instructions_layout.addWidget(QLabel("Occasionally, it may grow bored if you leave it alone and choose to take a nap. No wories, it will wake up whwen you come back!")),
+        instructions_layout.addWidget(QLabel("If PCat is in the way, right click to put it to bed for a little while. Also, don't forget to pet it every once in a while!")),
+        instructions_layout.addWidget(QLabel("If you need to change your PCat to fit your computer vibe, head to the settings tab in the launcher to change sprites, behavior, and more!"))
+        instructions_layout.addWidget(QLabel("Of course, sometimes you need your space, and PCat understands. To send PCat home, just left click him once and press the esacape key!"))
 
         self.instructions_window.setLayout(instructions_layout)
         self.instructions_window.show()
