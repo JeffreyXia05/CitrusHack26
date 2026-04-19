@@ -20,7 +20,7 @@ def update_behavior(pet, idleBool, walkBool, speakBool, sleepBool):
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("speak" if random.random() < 0.0 else "walk")
+            pet.set_state("speak" if random.random() < 0.4 else "walk") #testing
             
             
     elif pet.current_state == "walk" and walkBool:

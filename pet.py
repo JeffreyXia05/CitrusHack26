@@ -93,16 +93,14 @@ class DesktopPet(QWidget):
     # WINDOW
     # --------------------------------------------------------------------------------------------------
     def setup_window(self):
-        screen = QApplication.primaryScreen().geometry()
+        screen = QApplication.primaryScreen().availableGeometry()
         self.setGeometry(screen)
 
         # Updated flages for "true" /always on top behavior
         self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint |      # Removes title bar
-            Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
-            Qt.WindowType.SubWindow |                # Helps on some Linux distros
-            Qt.WindowType.X11BypassWindowManagerHint |# For Linux
-            Qt.WindowType.Window                      # Hides from Taskbar + stays afloat
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.Window              |       # Hides from Taskbar + stays afloat
+            Qt.WindowType.Tool                        # Hides from Taskbar on some platforms
         )
         
         # This attribute is crucial for transparency and click-through
@@ -113,6 +111,7 @@ class DesktopPet(QWidget):
         self.setMouseTracking(True)  
         self.label.setMouseTracking(True) 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
 
         
     # --------------------------------------------------------------------------------------------------
@@ -170,6 +169,7 @@ class DesktopPet(QWidget):
                 self.state_duration = random.randint(60, 300)
                 self.MAX_SPEED = 2
 
+                screen = QApplication.primaryScreen().geometry()
                 max_x = self.width() - self.label.width()
                 max_y = self.height() - self.label.height()
 
