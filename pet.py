@@ -44,6 +44,13 @@ class DesktopPet(QWidget):
         self.installEventFilter(self)
         self.setup_global_listeners() 
 
+        self.last_mouse_pos = QPoint(0, 0)
+        self.mouse_velocity = 0
+        self.is_squished = False
+        self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
+        self.target_x = 0
+        self.target_y = 0
+
     # -------------------------
     # SYSTEMS
     # -------------------------
@@ -65,15 +72,7 @@ class DesktopPet(QWidget):
         self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
         
         self.encouragement = EncouragementSystem(self)
-    
 
-        self.last_mouse_pos = QPoint(0, 0)
-        self.mouse_velocity = 0
-        self.is_squished = False
-        self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
-
-        self.target_x = 0
-        self.target_y = 0
 
     # -------------------------
     # WINDOW
@@ -126,17 +125,12 @@ class DesktopPet(QWidget):
 
         if self.current_state != new_state:
             self.current_state = new_state
-            self.frame_index = 0
+            self.frame_index = 0  
             self.frame_counter = 0
             self.state_timer = 0
 
             if new_state == "idle":
                 self.state_duration = random.randint(180, 420)
-            elif new_state == "walk":
-                self.state_duration = random.randint(60, 300)
-                self.MAX_SPEED = 3
-                self.dx = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
-                self.dy = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
             elif new_state == "speak":
                 self.state_duration = random.randint(250, 400)
                 self.encouragement.trigger()
@@ -149,6 +143,9 @@ class DesktopPet(QWidget):
             elif new_state == "walk":
                 self.state_duration = random.randint(60, 300)
                 self.MAX_SPEED = 2
+
+                max_x = self.width() - self.label.width()
+                max_y = self.height() - self.label.height()
 
                 windows = getattr(self, "obstacles", [])
                 self.current_window = get_window_under_pet(self, windows)
@@ -202,6 +199,9 @@ class DesktopPet(QWidget):
                     else:
                         self.target_x = random.randint(0, self.width() - self.label.width())
                         self.target_y = random.randint(0, self.height() - self.label.height())
+                
+                self.target_x = max(0, min(self.target_x, max_x))
+                self.target_y = max(0, min(self.target_y, max_y))
     
     
     # -------------------------
@@ -214,13 +214,6 @@ class DesktopPet(QWidget):
         center_x = (screen.width() - self.label.width()) // 2
         center_y = (screen.height() - self.label.height()) // 2
         self.label.move(center_x, center_y)
-
-
-    # -------------------------
-    # SYSTEMS
-    # -------------------------
-    def setup_systems(self):
-        self.encouragement = EncouragementSystem(self)
 
 
     # -------------------------
