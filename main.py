@@ -8,9 +8,9 @@ class AppController:
         self.pet = None
 
     # deploy the pet with the color option
-    def deploy_pet(self, option):
+    def deploy_pet(self, option, settings):
         if self.pet is None:
-            self.pet = DesktopPet(option)
+            self.pet = DesktopPet(option, settings)
             self.pet.show()
 
 def main():

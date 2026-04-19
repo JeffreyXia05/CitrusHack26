@@ -87,3 +87,12 @@ class SettingsDialog(QDialog):
 
     def get_id(self):
         return self.option
+    
+    def get_final_settings(self):
+        return {
+            "idle": self.idle_enabled,
+            "walk": self.walk_enabled,
+            "speak": self.speak_enabled,
+            "sleep": self.sleep_enabled,
+            "weirdWalk": self.weirdWalk_enabled,
+        }
