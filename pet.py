@@ -1,8 +1,10 @@
 import random
+import math
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
 from PyQt6.QtCore import QEvent, Qt, QPoint, QTimer, QPropertyAnimation
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QCursor
 from windows import get_windows, get_window_under_pet, get_window_center 
+
 
 from pynput import mouse as pynput_mouse
 from pynput import keyboard as pynput_keyboard
@@ -39,6 +41,11 @@ class DesktopPet(QWidget):
         
         self.installEventFilter(self)
         self.setup_global_listeners()
+
+        self.last_mouse_pos = QPoint(0, 0)
+        self.mouse_velocity = 0
+        self.is_squished = False
+        self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
 
         self.target_x = 0
         self.target_y = 0
@@ -277,36 +284,66 @@ class DesktopPet(QWidget):
     # -------------------------
     def update_appearance(self):
         state_data = self.states.get(self.current_state)
-
         if not state_data:
-            print(f"Error: missing state '{self.current_state}'")
             return
 
-        # This ensures 'frames' is defined for the rest of the function
         frames = state_data["frames"]
         pixmap = frames[self.frame_index]
 
-        # Use FastTransformation for crisp pixel art clarity
+        # tracks mouse
+        global_mouse = QCursor.pos()
+        local_mouse = self.label.mapFromGlobal(global_mouse)
+        
+        # space for petting
+        in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
+        
+        if not hasattr(self, 'last_mouse_pos'): self.last_mouse_pos = global_mouse
+        if not hasattr(self, 'squish_factor'): self.squish_factor = 1.0
+
+        # calculate squish based on velocity
+        dx = global_mouse.x() - self.last_mouse_pos.x()
+        dy = global_mouse.y() - self.last_mouse_pos.y()
+        total_movement = math.sqrt(dx**2 + dy**2)
+        
+        self.last_mouse_pos = global_mouse
+
+        # only in idle state
+        if self.current_state == "idle":
+            in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
+            
+            if in_rub_zone and total_movement > 5:
+                # squish down when being pet
+                self.squish_factor = max(0.75, self.squish_factor - 0.08)
+            else:
+                self.squish_factor = min(1.0, self.squish_factor + 0.03)
+        else:
+            # force recovery when not idle
+            self.squish_factor = min(1.0, self.squish_factor + 0.05)
+
+        target_w = 120
+        target_h = int(120 * self.squish_factor)
+
         scaled = pixmap.scaled(
-            120, 120,
-            Qt.AspectRatioMode.KeepAspectRatio,
+            target_w, target_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
             Qt.TransformationMode.FastTransformation
         )
 
         self.label.setPixmap(scaled)
         
-        # Only resize the label if the movement animation ISN'T running
-        # This prevents the pet from 'stuttering' during the sleep crawl
+        # keep cat's feet vertically position the same
+        top_margin = 120 - target_h
+        self.label.setContentsMargins(0, top_margin, 0, 0)
+        
         if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
-            self.label.resize(scaled.size())
+            self.label.resize(120, 120)
 
-        # ---- animation timing ----
+        # animation frames
         self.frame_counter += 1
         fps = state_data.get("fps", 2)
-
+        # waits for ticks before advancing to the frame
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
-            # Use the frames variable we defined above
             self.frame_index = (self.frame_index + 1) % len(frames)
 
 
