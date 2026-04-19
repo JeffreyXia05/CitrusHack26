@@ -13,7 +13,7 @@ from pynput import keyboard as pynput_keyboard
 from states import load_states
 from behavior import update_behavior
 from encouragement import EncouragementSystem
-from voice import VoiceManager #delete this
+from voice import VoiceManager 
 
 class DesktopPet(QWidget):
     def __init__(self, option):
@@ -76,7 +76,7 @@ class DesktopPet(QWidget):
         
         # elevenlabs voice setup
         api_key = os.getenv("ELEVEN_API_KEY")
-        self.voice_manager = VoiceManager(api_key) #delete this
+        self.voice_manager = VoiceManager(api_key)
 
 
     # --------------------------------------------------------------------------------------------------
@@ -98,12 +98,10 @@ class DesktopPet(QWidget):
         # This attribute is crucial for transparency and click-through
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
         
-        # On some systems, the pet still "hides" when you click a window.
-        # This line forces the window to be visible.
         self.show()
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, True)
-        self.setMouseTracking(True)  # Add this
-        self.label.setMouseTracking(True) # And this for the sprite label
+        self.setMouseTracking(True)  
+        self.label.setMouseTracking(True) 
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         
@@ -209,7 +207,7 @@ class DesktopPet(QWidget):
                 else:
                     choice = random.choices(
                         ["enter", "free"],
-                        weights=[0.2, 0.8]  #mostly stay out
+                        weights=[0.2, 0.8] 
                     )[0]
 
                     if choice == "enter" and windows:
@@ -250,10 +248,7 @@ class DesktopPet(QWidget):
     # SLEEP RELATED
     # --------------------------------------------------------------------------------------------------
     def on_global_input(self, *args):
-        # This is called whenever ANYTHING happens on the computer
         self.inactivity_timer = 0
-        # If the pet is sleeping, we need to wake it up
-
 
     def eventFilter(self, obj, event):
         # Detect Mouse Movement, Clicks, or Keyboard Presses
@@ -468,7 +463,7 @@ class DesktopPet(QWidget):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
 
-        if hasattr(self, 'voice_manager'): #delete this later
+        if hasattr(self, 'voice_manager'): 
                 self.voice_manager.say(text)
         
         # Center bubble above cat
@@ -509,7 +504,6 @@ class DesktopPet(QWidget):
                 self.dragging = True
                 self.offset = event.pos() - self.label.pos()
                 
-                # FIX: Check if 'animation' exists before calling .stop() 
                 if hasattr(self, 'animation'):
                     self.animation.stop() 
                 
