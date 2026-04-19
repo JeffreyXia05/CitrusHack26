@@ -1,14 +1,21 @@
 import os
 from PyQt6.QtGui import QPixmap
 
+
 BASE_DIR = os.path.dirname(__file__)
 ASSETS = os.path.join(BASE_DIR, "assets")
 
-def load_states():
+def load_states(option):
     # Path to your master sheet from itch.io
     # Change 'cat_sheet.png' to the exact name of your file
-    sheet_path = os.path.join("assets", "cat 1.png")
-    
+
+    if option == 1:
+        sheet_path = os.path.join("assets", "cat 1.png")
+    elif option == 2:
+        sheet_path = os.path.join("assets", "cat 2.png")
+    elif option == 3:
+        sheet_path = os.path.join("assets", "cat 3.png")
+
     if not os.path.exists(sheet_path):
         print(f"Error: Could not find {sheet_path}")
         return {}

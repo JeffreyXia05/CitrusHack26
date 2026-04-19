@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (
-    QWidget, QPushButton, QVBoxLayout, QDialog, QLabel
+    QButtonGroup, QRadioButton, QWidget, QPushButton, QVBoxLayout, QDialog, QLabel
 )
 
 class SettingsDialog(QDialog):
@@ -7,7 +7,7 @@ class SettingsDialog(QDialog):
         super().__init__()
 
         self.setWindowTitle("Settings")
-        self.setFixedSize(300, 200)
+        self.setFixedSize(500, 300)
 
         layout = QVBoxLayout()
 
@@ -32,6 +32,27 @@ class SettingsDialog(QDialog):
         layout.addWidget(self.walk_btn)
         layout.addWidget(self.speak_btn)
         layout.addWidget(self.sleep_btn)
+        layout.addWidget(QLabel("Cat Color"))
+
+        color = [
+            ("Black", 1),
+            ("Orange", 2),
+            ("White", 3)
+        ]
+
+        self.color_group = QButtonGroup(self)
+        self.color_group.buttonClicked.connect(self.update_id)
+
+        for name, color_id in color:
+            radio = QRadioButton(name)
+            radio.setProperty("id", color_id)
+            
+            layout.addWidget(radio)
+            self.color_group.addButton(radio)
+
+        # black as default
+        self.color_group.buttons()[0].setChecked(True)
+        self.option = 1
 
         self.setLayout(layout)
 
@@ -50,3 +71,9 @@ class SettingsDialog(QDialog):
     def toggle_sleep(self):
         self.sleep_enabled = not self.sleep_enabled
         self.sleep_btn.setText(f"Sleep: {'ON' if self.sleep_enabled else 'OFF'}")
+
+    def update_id(self, button):
+        self.option = button.property("id")
+
+    def get_id(self):
+        return self.option

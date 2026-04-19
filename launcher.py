@@ -9,6 +9,7 @@ class Launcher(QWidget):
         super().__init__()
 
         self.on_deploy = on_deploy
+        self.settings_window = SettingsDialog()
 
         self.setWindowTitle("Launcher")
         self.setFixedSize(300, 200)
@@ -26,19 +27,18 @@ class Launcher(QWidget):
 
         self.setLayout(layout)
 
-        self.settings_window = None
 
     def deploy(self):
-        self.on_deploy()
+        option = self.settings_window.get_id()
+        self.on_deploy(option)
         self.deploy_button.setText("Deployed ✔")
         self.deploy_button.setEnabled(False)
         self.hide()
 
+
     def open_settings(self):
-        # create once, reuse later
-        if self.settings_window is None:
-            self.settings_window = SettingsDialog()
 
         self.settings_window.show()
         self.settings_window.raise_()
         self.settings_window.activateWindow()
+        self.option = SettingsDialog().get_id()

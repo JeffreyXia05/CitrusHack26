@@ -16,7 +16,7 @@ from behavior import update_behavior
 from encouragement import EncouragementSystem
 
 class DesktopPet(QWidget):
-    def __init__(self):
+    def __init__(self, option):
         super().__init__()
 
         # 1. Initialize basic variables first
@@ -27,6 +27,7 @@ class DesktopPet(QWidget):
         self.inactivity_timer = 0
         self.INACTIVITY_LIMIT = 30 * 60 
         self.dragging = False  # Ensure this exists early
+        self.option = option
 
         # 2. Setup DATA (This must come before visuals)
         self.setup_states()    # This creates self.states and self.current_state
@@ -104,13 +105,14 @@ class DesktopPet(QWidget):
     # STATES
     # -------------------------
     def setup_states(self):
-        self.states = load_states()
+        self.states = load_states(self.option)
         self.current_state = "idle"
         self.dx = 0
         self.dy = 0
         self.state_timer = 0
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
         self.current_state = "idle"
+        
 
     def set_state(self, new_state):
         if self.current_state == "speak" and new_state != "speak":
