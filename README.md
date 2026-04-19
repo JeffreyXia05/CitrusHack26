@@ -43,3 +43,5 @@ To get CitrusPet running locally, follow these steps:
 
   
 Sprites used: https://last-tick.itch.io/animated-pixel-kittens-cats-32x32 
+
+Made with love by Andrew Li, Yilin Liu, and Jeffrey Xia
