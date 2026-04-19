@@ -22,6 +22,7 @@ def update_behavior(pet):
         if pet.state_timer >= pet.state_duration:
             pet.set_state("speak" if random.random() < 0.3 else "walk")
             
+            
     elif pet.current_state == "walk":
         walk(pet)
 
