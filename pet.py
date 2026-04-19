@@ -271,11 +271,19 @@ class DesktopPet(QWidget):
     # MAIN LOOP
     # -------------------------
     def tick(self):
+
         self.update_obstacles()
 
-        if not self.dragging:
-            self.inactivity_timer += 1
+        if self.dragging:
+            # reset timer
+            self.inactivity_timer = 0
+            
+            self.update_appearance()
+            return
+        
+        self.inactivity_timer += 1
 
+        # Handle Sleep/Wake transitions
         if self.inactivity_timer >= self.INACTIVITY_LIMIT:
             if self.current_state != "sleep":
                 self.set_state("sleep")
@@ -286,6 +294,7 @@ class DesktopPet(QWidget):
         if self.current_state != "sleep":
             update_behavior(self)
 
+        # Update the visual frame
         self.update_appearance()
 
 
@@ -307,14 +316,17 @@ class DesktopPet(QWidget):
             return
 
         frames = state_data["frames"]
-        pixmap = frames[self.frame_index]
+        
+        # --- 1. DRAG STATE OVERRIDE ---
+        # If dragging, freeze on the first frame (index 0)
+        if getattr(self, 'dragging', False):
+            pixmap = frames[0]
+        else:
+            pixmap = frames[self.frame_index]
 
         # tracks mouse
         global_mouse = QCursor.pos()
         local_mouse = self.label.mapFromGlobal(global_mouse)
-        
-        # space for petting
-        in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
         
         if not hasattr(self, 'last_mouse_pos'): self.last_mouse_pos = global_mouse
         if not hasattr(self, 'squish_factor'): self.squish_factor = 1.0
@@ -323,20 +335,16 @@ class DesktopPet(QWidget):
         dx = global_mouse.x() - self.last_mouse_pos.x()
         dy = global_mouse.y() - self.last_mouse_pos.y()
         total_movement = math.sqrt(dx**2 + dy**2)
-        
         self.last_mouse_pos = global_mouse
 
-        # only in idle state
-        if self.current_state == "idle":
+        # only in idle state (and not while dragging)
+        if self.current_state == "idle" and not getattr(self, 'dragging', False):
             in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
-            
             if in_rub_zone and total_movement > 5:
-                # squish down when being pet
                 self.squish_factor = max(0.75, self.squish_factor - 0.08)
             else:
                 self.squish_factor = min(1.0, self.squish_factor + 0.03)
         else:
-            # force recovery when not idle
             self.squish_factor = min(1.0, self.squish_factor + 0.05)
 
         target_w = 120
@@ -350,19 +358,20 @@ class DesktopPet(QWidget):
 
         self.label.setPixmap(scaled)
         
-        # keep cat's feet vertically position the same
         top_margin = 120 - target_h
         self.label.setContentsMargins(0, top_margin, 0, 0)
         
         if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
             self.label.resize(120, 120)
 
-        self.frame_counter += 1
-        fps = state_data.get("fps", 2)
-        if self.frame_counter >= (60 // fps):
-            self.frame_counter = 0
-            self.frame_index = (self.frame_index + 1) % len(frames)
-
+        # --- 2. GUARD THE ANIMATION TIMING ---
+        # Only advance the frame animation if NOT dragging
+        if not getattr(self, 'dragging', False):
+            self.frame_counter += 1
+            fps = state_data.get("fps", 2)
+            if self.frame_counter >= (60 // fps):
+                self.frame_counter = 0
+                self.frame_index = (self.frame_index + 1) % len(frames)
     # -------------------------
     # CHAT UI
     # -------------------------
@@ -451,9 +460,16 @@ class DesktopPet(QWidget):
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
+            # Check if the user clicked on the pet label
             if self.label.geometry().contains(event.pos()):
                 self.dragging = True
                 self.offset = event.pos() - self.label.pos()
+                
+                # FIX: Check if 'animation' exists before calling .stop()
+                if hasattr(self, 'animation'):
+                    self.animation.stop() 
+                
+                self.set_state("drag")
 
     def mouseMoveEvent(self, event):
         if self.dragging:
@@ -469,6 +485,7 @@ class DesktopPet(QWidget):
         self.dragging = False
         if self.current_state != "speak":
             self.encouragement.trigger()
+        self.set_state("idle")
 
     def resizeEvent(self, event):
         self.label.move(
