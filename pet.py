@@ -16,7 +16,7 @@ from encouragement import EncouragementSystem
 from voice import VoiceManager
 
 class DesktopPet(QWidget):
-    def __init__(self, option):
+    def __init__(self, option, settings):
         super().__init__()
 
         # initialized variables for the pet's behavior, animation, and screen size
@@ -28,6 +28,14 @@ class DesktopPet(QWidget):
         self.INACTIVITY_LIMIT = 30 * 60 
         self.dragging = False 
         self.option = option
+        self.settings = settings
+
+        # initialization for settings
+        self.idle = settings.get("idle", True)
+        self.walk = settings.get("walk", True)
+        self.speak = settings.get("speak", True)
+        self.sleep = settings.get("sleep", True)
+        self.weirdWalk = settings.get("weirdWalk", False)
 
         # states initialization
         self.setup_states()
@@ -109,7 +117,7 @@ class DesktopPet(QWidget):
     # STATES
     # -------------------------
     def setup_states(self):
-        self.states = load_states(self.option)
+        self.states = load_states(self.option, self.settings)
         self.current_state = "idle"
         self.dx = 0
         self.dy = 0
@@ -317,7 +325,7 @@ class DesktopPet(QWidget):
                 self.set_state("idle")
 
         if self.current_state != "sleep":
-            update_behavior(self)
+            update_behavior(self, self.idle, self.walk, self.speak, self.sleep, self.weirdWalk)
 
         # Update the visual frame
         self.update_appearance()

@@ -6,7 +6,7 @@ BASE_DIR = os.path.dirname(__file__)
 ASSETS = os.path.join(BASE_DIR, "assets")
 
 
-def load_states(option):
+def load_states(option, settings):
     # -------------------------
     # SELECT SPRITE SHEET
     # -------------------------
@@ -100,19 +100,19 @@ def load_states(option):
         "idle": {
             "variants": idle_variants,
             "fps": 4
-        },
+        } if settings.get("idle", True) else None,
         "walk": {
             "frames": walk_frames, 
             "fps": 12
-        },
+        } if settings.get("walk", True) else None,
         "sleep": {
             "variants": sleep_variants,
             "fps": 1
-        },
+        } if settings.get("sleep", True) else None,
         "speak": {
             "frames": speak_frames,
             "fps": 4
-        },
+        } if settings.get("speak", True) else None,
         "drag": {
             "frames": drag_frames,
             "fps": 1
