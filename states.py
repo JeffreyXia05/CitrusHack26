@@ -56,6 +56,10 @@ def load_states(option):
         "speak": {
             "frames": get_frames(row=32, frame_count=8), # Sitting/Idle while speaking
             "fps": 4
+        },
+        "drag": {
+            "frames": get_frames(row=43, frame_count=1), # Reusing walk frames for dragging
+            "fps": 1
         }
     }
 
