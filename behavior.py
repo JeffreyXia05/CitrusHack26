@@ -51,6 +51,9 @@ def idle(pet):
 # WALK STATE (TARGET BASED)
 # -------------------------
 def walk(pet):
+    if getattr(pet, 'pinned', False):
+        return
+    
     x = pet.label.x()
     y = pet.label.y()
 
