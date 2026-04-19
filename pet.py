@@ -483,23 +483,22 @@ class DesktopPet(QWidget):
 
         if event.button() == Qt.MouseButton.RightButton:
             if self.label.geometry().contains(event.pos()):
-                self.pinned = True
-                self.pin_timer = 0
-                self.pin_duration = 60 * 60
-                
-                self.state_duration = self.pin_duration
-
-            self.set_state("sleep")
-
-        if event.button() == Qt.MouseButton.RightButton:
-            if self.label.geometry().contains(event.pos()):
-                self.pinned = True
-                self.pin_timer = 0
-                self.pin_duration = 60 * 60
-                
-                self.state_duration = self.pin_duration
-
-            self.set_state("sleep")
+                if self.pinned == True:
+                    self.set_state("idle")
+                    self.pinned = False
+                else:
+                    self.pinned = True
+                    self.pin_timer = 0
+                    self.pin_duration = 9999
+                    
+                    self.state_duration = self.pin_duration
+                    if hasattr(self, 'animation'):
+                        self.animation.stop() 
+                    
+                    self.current_state = "idle"  
+                    self.set_state("sleep")
+                    self.update_appearance()
+                    self.state_duration = self.pin_duration
 
     def mouseMoveEvent(self, event):
         if self.dragging:
