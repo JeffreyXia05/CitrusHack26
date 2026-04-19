@@ -339,11 +339,14 @@ class DesktopPet(QWidget):
     def update_appearance(self):
         # DRAG STATE OVERRIDE
         # If dragging, freeze on the first frame (index 0)
-        if self.dragging:
-            state_data = self.states.get("drag")
+        if getattr(self, 'dragging', False):
+            state_key = "drag"
         else:
-            state_data = self.states.get(self.current_state)
+            state_key = self.current_state
+
+        state_data = self.states.get(state_key)
         if not state_data:
+            self.current_state = "idle"
             return
             
         if self.current_state == "idle":
@@ -355,14 +358,17 @@ class DesktopPet(QWidget):
             if not hasattr(self, "current_sleep_frames"):
                 self.current_sleep_frames = random.choice(state_data["variants"])
             frames = self.current_sleep_frames
+        
+        elif self.current_state == "walk" and not self.dragging:
+            frames_source = state_data.get("variants") or state_data.get("frames")
+            if isinstance(frames_source, dict):
+                frames = frames_source.get(self.direction, frames_source.get("down"))
+            else:
+                frames = frames_source
 
         else:
-            frames = state_data["frames"]
+            frames = state_data.get("frames", [])
             
-
-        if self.current_state == "walk" and not self.dragging:
-            frames = state_data["frames"].get(self.direction, state_data["frames"]["down"])
-
         if not frames:
             return
         
