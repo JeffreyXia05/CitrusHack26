@@ -43,17 +43,17 @@ def load_states(option, settings):
     # IDLE (single row animation)
     # -------------------------
     idle_variants = [
-        get_frames(row=0, frame_count=1) * 4 + get_frames(row=36, frame_count=8) + get_frames(row=0, frame_count=6),
-        get_frames(row=0, frame_count=1) * 4 + get_frames(row=20, frame_count=8) + get_frames(row=33, frame_count=8),
-        get_frames(row=39, frame_count=11) * 2,
-        get_frames(row=0, frame_count=1) * 4 + get_frames(row=40, frame_count=11) * 2,
-        get_frames(row=0, frame_count=1) * 1 + get_frames(row=37, frame_count=8) + get_frames(row=29, frame_count=3) + get_frames(row=0, frame_count=6),
-        get_frames(row=2, frame_count=6) + get_frames(row=30, frame_count=3) * 2 + get_frames(row=2, frame_count=6),
-        get_frames(row=0, frame_count=1) * 8 + get_frames(row=36, frame_count=8),
-        get_frames(row=0, frame_count=1) * 16,
-        get_frames(row=1, frame_count=1) * 16,
-        get_frames(row=34, frame_count=1) * 16,
-        get_frames(row=52, frame_count=4) * 3 + get_frames(row=0, frame_count=1) * 4
+        get_frames(row=0, frame_count=1) * 10 + get_frames(row=36, frame_count=8) + get_frames(row=0, frame_count=6), #22
+        get_frames(row=0, frame_count=1) * 4 + get_frames(row=20, frame_count=8) + get_frames(row=33, frame_count=8) + get_frames(row=0, frame_count=1) * 4, #24
+        get_frames(row=0, frame_count=1) * 2 + get_frames(row=39, frame_count=11) * 2, #24
+        get_frames(row=0, frame_count=1) * 2 + get_frames(row=40, frame_count=11) * 2, #24
+        get_frames(row=37, frame_count=7) * 2 + get_frames(row=29, frame_count=3) + get_frames(row=0, frame_count=6) + get_frames(row=0, frame_count=1), #24
+        get_frames(row=2, frame_count=6) + get_frames(row=30, frame_count=3) * 2 + get_frames(row=2, frame_count=6)  + get_frames(row=30, frame_count=3) * 2, #24
+        get_frames(row=0, frame_count=1) * 8 + get_frames(row=36, frame_count=8) * 2, #24
+        get_frames(row=0, frame_count=1) * 5 + get_frames(row=38, frame_count=7) * 2 + get_frames (row=0, frame_count=1) * 5, #24
+        get_frames(row=34, frame_count=1) * 8 + get_frames(row=34, frame_count=8) + get_frames(row=34, frame_count=1) * 8, #24
+        get_frames(row=0, frame_count=1) * 4 + get_frames(row=52, frame_count=4) * 2 + get_frames(row=0, frame_count=1) * 4 + get_frames(row=52, frame_count=4) * 2, #24
+        get_frames(row=2, frame_count=1) * 8 + get_frames(row=34, frame_count=8) + get_frames(row=2, frame_count=1) * 8 #14
     ]
     # -------------------------
     # WALK (8 directions) and (spinning walk)

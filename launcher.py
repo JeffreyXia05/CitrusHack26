@@ -41,7 +41,7 @@ class Launcher(QWidget):
         option = self.settings_window.get_id()
         settings = self.settings_window.get_final_settings()
         self.on_deploy(option, settings)
-        self.deploy_button.setText("Deployed ✔")
+        self.deploy_button.setText("Deployed")
         self.deploy_button.setEnabled(False)
         self.hide()
 
