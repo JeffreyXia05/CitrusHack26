@@ -16,25 +16,21 @@ class SettingsDialog(QDialog):
 
         layout.addWidget(QLabel("Settings Menu"))
 
-        self.idle_enabled = True
         self.walk_enabled = True
         self.speak_enabled = True
         self.sleep_enabled = True
         self.weirdWalk_enabled = False
 
-        self.idle_btn = QPushButton("Idle: ON")
         self.walk_btn = QPushButton("Walk: ON")
         self.speak_btn = QPushButton("Speak: ON")
         self.sleep_btn = QPushButton("Sleep: ON")
         self.weirdWalk_btn = QPushButton("Weird Walk: OFF")
 
-        self.idle_btn.clicked.connect(self.toggle_idle)
         self.walk_btn.clicked.connect(self.toggle_walk)
         self.speak_btn.clicked.connect(self.toggle_speak)
         self.sleep_btn.clicked.connect(self.toggle_sleep)
         self.weirdWalk_btn.clicked.connect(self.toggle_weirdWalk)
 
-        layout.addWidget(self.idle_btn)
         layout.addWidget(self.walk_btn)
         layout.addWidget(self.speak_btn)
         layout.addWidget(self.sleep_btn)
@@ -62,10 +58,6 @@ class SettingsDialog(QDialog):
 
         self.setLayout(layout)
 
-    def toggle_idle(self):
-        self.idle_enabled = not self.idle_enabled
-        self.idle_btn.setText(f"Idle: {'ON' if self.idle_enabled else 'OFF'}")
-
     def toggle_walk(self):
         self.walk_enabled = not self.walk_enabled
         self.walk_btn.setText(f"Walk: {'ON' if self.walk_enabled else 'OFF'}")
@@ -90,7 +82,6 @@ class SettingsDialog(QDialog):
     
     def get_final_settings(self):
         return {
-            "idle": self.idle_enabled,
             "walk": self.walk_enabled,
             "speak": self.speak_enabled,
             "sleep": self.sleep_enabled,

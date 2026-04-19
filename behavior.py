@@ -4,7 +4,7 @@ import math
 # ------------------------------------------------------------------------------------------
 # MAIN BEHAVIOR LOOP
 # -------------------------
-def update_behavior(pet, idleBool, walkBool, speakBool, sleepBool):
+def update_behavior(pet, walkBool, speakBool, sleepBool):
     # If the user is typing, don't tick the state timer
     if speakBool:
         if pet.chat_input.hasFocus():
@@ -16,11 +16,11 @@ def update_behavior(pet, idleBool, walkBool, speakBool, sleepBool):
     
     pet.state_timer += 1
 
-    if pet.current_state == "idle" and idleBool:
+    if pet.current_state == "idle":
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("speak" if random.random() < 0.0 else "walk")
+            pet.set_state("speak" if random.random() < 0.4 else "walk")
             
             
     elif pet.current_state == "walk" and walkBool:

@@ -31,7 +31,6 @@ class DesktopPet(QWidget):
         self.settings = settings
 
         # initialization for settings
-        self.idle = settings.get("idle", True)
         self.walk = settings.get("walk", True)
         self.speak = settings.get("speak", True)
         self.sleep = settings.get("sleep", True)
@@ -55,7 +54,6 @@ class DesktopPet(QWidget):
         # variables for petting
         self.last_mouse_pos = QPoint(0, 0)
         self.mouse_velocity = 0
-        self.is_squished = False
         self.squish_factor = 1.0 
         self.target_x = 0
         self.target_y = 0
@@ -102,7 +100,7 @@ class DesktopPet(QWidget):
             Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
             Qt.WindowType.SubWindow |                # Helps on some Linux distros
             Qt.WindowType.X11BypassWindowManagerHint |# For Linux
-            Qt.WindowType.Window                      # Hides from Taskbar + stays afloat
+            Qt.WindowType.Window                      # Stays afloat
         )
         
         # This attribute is crucial for transparency and click-through
@@ -148,7 +146,7 @@ class DesktopPet(QWidget):
             self.frame_counter = 0
             self.state_timer = 0
 
-            if new_state == "idle" and self.idle:
+            if new_state == "idle":
                 self.state_duration = random.randint(360, 600)
                 idle_variants = self.states["idle"]["variants"]
                 self.current_idle_frames = random.choice(idle_variants)
@@ -320,7 +318,7 @@ class DesktopPet(QWidget):
                 self.set_state("idle")
 
         if self.current_state != "sleep":
-            update_behavior(self, self.idle, self.walk, self.speak, self.sleep)
+            update_behavior(self, self.walk, self.speak, self.sleep)
 
         # Update visual frame
         self.update_appearance()
