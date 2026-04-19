@@ -7,6 +7,7 @@ class AppController:
     def __init__(self):
         self.pet = None
 
+    # deploy the pet with the color option
     def deploy_pet(self, option):
         if self.pet is None:
             self.pet = DesktopPet(option)
@@ -16,6 +17,7 @@ def main():
     app = QApplication(sys.argv)
 
     controller = AppController()
+    # calls launcher
     launcher = Launcher(on_deploy=controller.deploy_pet)
     launcher.show()
 
