@@ -60,5 +60,4 @@ class EncouragementSystem:
                 self.pet.text_bubble.y() + self.pet.text_bubble.height() + 5
             )
             self.pet.chat_input.setFixedWidth(self.pet.text_bubble.width())
-            self.pet.chat_input.show()
             self.pet.chat_input.setFocus()

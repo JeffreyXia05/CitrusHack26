@@ -131,7 +131,7 @@ class DesktopPet(QWidget):
                 self.dx = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
                 self.dy = random.randint(-self.MAX_SPEED, self.MAX_SPEED)
             elif new_state == "speak":
-                self.state_duration = random.randint(150, 300) # Slightly longer for chat
+                self.state_duration = random.randint(250, 400)
                 self.encouragement.trigger()
 
             elif new_state == "sleep":
@@ -319,7 +319,6 @@ class DesktopPet(QWidget):
     def setup_text_bubble(self):
         self.text_bubble = QLabel(self)
         self.text_bubble.setWordWrap(True)
-        self.text_bubble.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.text_bubble.setFont(QFont("Arial", 10))
         self.text_bubble.setStyleSheet(
             "color: black; background-color: rgba(255,255,255,0.9); "
@@ -329,7 +328,7 @@ class DesktopPet(QWidget):
 
         # Reply Button
         self.reply_button = QPushButton("Reply", self)
-        self.reply_button.setFixedWidth(60)
+        self.reply_button.setFixedWidth(40)
         self.reply_button.setStyleSheet(
             "background-color: #eee; color: black; border-radius: 5px; font-size: 10px;"
         )
@@ -356,10 +355,10 @@ class DesktopPet(QWidget):
         self.chat_input.clear()
         self.show_encouragement("...") 
         
-        # 4. Use the new send_message syntax
         try:
             response = self.chat_session.send_message(user_text)
-            # Accessing the text via .text attribute
+            self.state_timer = 0 
+            self.state_duration = random.randint(200, 300) 
             self.show_encouragement(response.text)
         except Exception as e:
             print(f"Error: {e}")
@@ -369,20 +368,23 @@ class DesktopPet(QWidget):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
         
-        # Position bubble above the cat
-        self.text_bubble.move(
-            self.label.x(),
-            self.label.y() - self.text_bubble.height() - 10
-        )
+        # Center bubble above cat
+        bubble_x = self.label.x() + (self.label.width() - self.text_bubble.width()) // 2
+
+        # Flip below if not enough room above
+        if self.label.y() - self.text_bubble.height() - 10 < 0:
+            bubble_y = self.label.y() + self.label.height() + 5 # below cat
+            button_y = bubble_y + self.text_bubble.height() + 5
+        else:
+            bubble_y = self.label.y() - self.text_bubble.height() - 10  # above cat
+            button_y = bubble_y + self.text_bubble.height() + 5
+        self.text_bubble.move(bubble_x, bubble_y)
         self.text_bubble.show()
 
-        self.reply_button.move(
-            self.label.x() + (self.label.width() // 2) - 30,
-            self.label.y() - 10 
-        )
+        # Center reply button below bubble
+        button_x = self.label.x() + (self.label.width() - self.reply_button.width()) // 2
+        self.reply_button.move(button_x, button_y)
         self.reply_button.show()
-        
-        # Ensure input box is hidden initially
         self.chat_input.hide()
 
     # -------------------------
