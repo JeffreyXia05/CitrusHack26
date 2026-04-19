@@ -1,4 +1,5 @@
 import random
+import math
 from encouragement import EncouragementSystem
 
 # -------------------------
@@ -36,9 +37,6 @@ def update_behavior(pet):
             pet.chat_input.hide()
             pet.set_state("idle")
 
-    elif pet.current_state == "drag":
-        drag(pet)
-
 
 # -------------------------
 # IDLE STATE
@@ -60,6 +58,8 @@ def walk(pet):
 
     dx = pet.target_x - x
     dy = pet.target_y - y
+
+    pet.direction = get_direction(dx, dy)
 
     step = pet.MAX_SPEED
 
@@ -83,7 +83,24 @@ def walk(pet):
     ):
         pet.set_state("idle")
 
-
+def get_direction(dx, dy):
+    angle = math.atan2(dy, dx)
+    if -math.pi/8 <= angle < math.pi/8:
+        return "right"
+    elif math.pi/8 <= angle < 3*math.pi/8:
+        return "down_right"
+    elif 3*math.pi/8 <= angle < 5*math.pi/8:
+        return "down"
+    elif 5*math.pi/8 <= angle < 7*math.pi/8:
+        return "down_left"
+    elif 7*math.pi/8 <= angle or angle < -7*math.pi/8:
+        return "left"
+    elif -7*math.pi/8 <= angle < -5*math.pi/8:
+        return "up_left"
+    elif -5*math.pi/8 <= angle < -3*math.pi/8:
+        return "up"
+    else:
+        return "up_right"
 # -------------------------
 # TARGET CHECK
 # -------------------------
@@ -98,8 +115,4 @@ def speak(pet):
 def sleep(pet):
     # Pet stays still. 
     # Animation is handled automatically by update_appearance in pet.py
-    pass
-
-def drag(pet):
-    # Position is handled by mouse events in pet.py
     pass
