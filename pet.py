@@ -51,6 +51,7 @@ class DesktopPet(QWidget):
         self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
         self.target_x = 0
         self.target_y = 0
+        self.direction = "down"
 
     # -------------------------
     # SYSTEMS
@@ -132,13 +133,19 @@ class DesktopPet(QWidget):
             self.state_timer = 0
 
             if new_state == "idle":
-                self.state_duration = random.randint(180, 420)
+                self.state_duration = random.randint(360, 600)
+                idle_variants = self.states["idle"]["variants"]
+                self.current_idle_frames = random.choice(idle_variants)
             elif new_state == "speak":
                 self.state_duration = random.randint(250, 400)
                 self.encouragement.trigger()
 
             elif new_state == "sleep":
                 self.state_duration = 999999 # Stay asleep until woken up
+                sleep_variants = self.states["sleep"]["variants"]
+                self.current_sleep_frames = random.choice(sleep_variants)
+                self.frame_index = 0
+                
                 if hasattr(self, 'text_bubble'):
                     self.text_bubble.hide()
             
@@ -151,6 +158,10 @@ class DesktopPet(QWidget):
 
                 windows = getattr(self, "obstacles", [])
                 self.current_window = get_window_under_pet(self, windows)
+                if hasattr(self, "last_direction") and self.last_direction != self.direction:
+                    self.frame_index = 0
+
+                self.last_direction = self.direction
 
                 #INSIDE A WINDOW---------------------------------------------------------
                 if self.current_window:
@@ -190,7 +201,7 @@ class DesktopPet(QWidget):
                 else:
                     choice = random.choices(
                         ["enter", "free"],
-                        weights=[0.5, 0.5]
+                        weights=[0.2, 0.8]
                     )[0]
 
                     if choice == "enter" and windows:
@@ -311,18 +322,36 @@ class DesktopPet(QWidget):
     # APPEARANCE
     # -------------------------
     def update_appearance(self):
-        state_data = self.states.get(self.current_state)
+        # DRAG STATE OVERRIDE
+        # If dragging, freeze on the first frame (index 0)
+        if self.dragging:
+            state_data = self.states.get("drag")
+        else:
+            state_data = self.states.get(self.current_state)
         if not state_data:
             return
+            
+        if self.current_state == "idle":
+            if not hasattr(self, "current_idle_frames"):
+                self.current_idle_frames = random.choice(state_data["variants"])
+            frames = self.current_idle_frames
 
-        frames = state_data["frames"]
-        
-        # --- 1. DRAG STATE OVERRIDE ---
-        # If dragging, freeze on the first frame (index 0)
-        if getattr(self, 'dragging', False):
-            pixmap = frames[0]
+        elif self.current_state == "sleep":
+            if not hasattr(self, "current_sleep_frames"):
+                self.current_sleep_frames = random.choice(state_data["variants"])
+            frames = self.current_sleep_frames
+
         else:
-            pixmap = frames[self.frame_index]
+            frames = state_data["frames"]
+            
+
+        if self.current_state == "walk" and not self.dragging:
+            frames = state_data["frames"].get(self.direction, state_data["frames"]["down"])
+
+        if not frames:
+            return
+        
+        pixmap = frames[self.frame_index % len(frames)]
 
         # tracks mouse
         global_mouse = QCursor.pos()
@@ -372,6 +401,7 @@ class DesktopPet(QWidget):
             if self.frame_counter >= (60 // fps):
                 self.frame_counter = 0
                 self.frame_index = (self.frame_index + 1) % len(frames)
+                
     # -------------------------
     # CHAT UI
     # -------------------------
