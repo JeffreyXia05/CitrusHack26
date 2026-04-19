@@ -35,6 +35,9 @@ def update_behavior(pet):
             pet.chat_input.hide()
             pet.set_state("idle")
 
+    elif pet.current_state == "drag":
+        drag(pet)
+
 
 # -------------------------
 # IDLE STATE
@@ -94,4 +97,8 @@ def speak(pet):
 def sleep(pet):
     # Pet stays still. 
     # Animation is handled automatically by update_appearance in pet.py
+    pass
+
+def drag(pet):
+    # Position is handled by mouse events in pet.py
     pass
