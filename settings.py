@@ -2,6 +2,9 @@ from PyQt6.QtWidgets import (
     QButtonGroup, QRadioButton, QWidget, QPushButton, QVBoxLayout, QDialog, QLabel
 )
 
+# ------------------------------------------------------------------------------------------
+# CUSTOMIZABLE SETTINGS
+# ------------------------------------------------------------------------------------------
 class SettingsDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -54,7 +57,6 @@ class SettingsDialog(QDialog):
             layout.addWidget(radio)
             self.color_group.addButton(radio)
 
-        # black as default
         self.color_group.buttons()[0].setChecked(True)
         self.option = 1
 

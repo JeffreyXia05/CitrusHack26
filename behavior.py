@@ -1,12 +1,10 @@
 import random
 import math
-from encouragement import EncouragementSystem
 
 # -------------------------
 # MAIN BEHAVIOR LOOP
 # -------------------------
 def update_behavior(pet):
-    # If the user is typing, don't tick the state timer
     if pet.chat_input.hasFocus():
         return 
 
@@ -20,7 +18,7 @@ def update_behavior(pet):
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("speak" if random.random() < 0.0 else "walk") #modify for speaking chance
+            pet.set_state("speak" if random.random() < 0.4 else "walk")
             
             
     elif pet.current_state == "walk":
@@ -42,7 +40,6 @@ def update_behavior(pet):
 # IDLE STATE
 # -------------------------
 def idle(pet):
-    # stays still (you can add small idle animation later)
     pass
 
 
@@ -76,13 +73,14 @@ def walk(pet):
 
     pet.label.move(x, y)
 
-    # STOP when target reached
+    # stop when target reached
     if (
         abs(x - pet.target_x) < 3 and
         abs(y - pet.target_y) < 3
     ):
         pet.set_state("idle")
 
+# gets direction of sprite
 def get_direction(dx, dy):
     angle = math.atan2(dy, dx)
     if -math.pi/8 <= angle < math.pi/8:
@@ -101,6 +99,7 @@ def get_direction(dx, dy):
         return "up"
     else:
         return "up_right"
+    
 # -------------------------
 # TARGET CHECK
 # -------------------------
@@ -113,6 +112,4 @@ def speak(pet):
     pass
 
 def sleep(pet):
-    # Pet stays still. 
-    # Animation is handled automatically by update_appearance in pet.py
     pass
