@@ -14,13 +14,13 @@ from pynput import keyboard as pynput_keyboard
 from states import load_states
 from behavior import update_behavior
 from encouragement import EncouragementSystem
-from voice import VoiceManager
+from voice import VoiceManager #delete this
 
 class DesktopPet(QWidget):
     def __init__(self, option):
         super().__init__()
 
-        # 1. Initialize basic variables first
+        # Initialize basic variables first
         self.frame_counter = 0
         self.frame_index = 0
         self.last_speak_state = None
@@ -30,15 +30,15 @@ class DesktopPet(QWidget):
         self.dragging = False  # Ensure this exists early
         self.option = option
 
-        # 2. Setup DATA (This must come before visuals)
+        #Setup data (visuals)
         self.setup_states()    # This creates self.states and self.current_state
 
-        # 3. Setup VISUALS (Now update_appearance will work)
+        # 3. Setup visuals (Now update_appearance works)
         self.setup_sprite()    # Creates self.label and calls update_appearance
         self.setup_window()    # Configures the window and mouse tracking
         
-        # 4. Setup EVERYTHING ELSE
-        self.setup_systems()  # Fixed: No longer contains nested functions
+        # 4. Setup everything else
+        self.setup_systems() 
         self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
@@ -49,14 +49,14 @@ class DesktopPet(QWidget):
         self.last_mouse_pos = QPoint(0, 0)
         self.mouse_velocity = 0
         self.is_squished = False
-        self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
+        self.squish_factor = 1.0 
         self.target_x = 0
         self.target_y = 0
         self.direction = "down"
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # SYSTEMS
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_systems(self):
         import os
         from dotenv import load_dotenv
@@ -65,35 +65,35 @@ class DesktopPet(QWidget):
         self.client = genai.Client(
             api_key=os.getenv("GEMINI_API_KEY"),
         )
-        # 2. Define the persona using a Config object
+        #Define the persona using a Config object
         self.chat_config = types.GenerateContentConfig(
             system_instruction="You are a digital cat. You start by giving encouragement. "
                                "If the user talks back, be a cat: use puns, 'meow', and stay brief."
         )
         
-        # 3. Start the chat session
+        # Start the chat session
         self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
         
         self.encouragement = EncouragementSystem(self)
 
         api_key = os.getenv("ELEVEN_API_KEY")
-        self.voice_manager = VoiceManager(api_key)
+        self.voice_manager = VoiceManager(api_key) #delete this
 
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # WINDOW
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_window(self):
         screen = QApplication.primaryScreen().geometry()
         self.setGeometry(screen)
 
-        # Updated Flags for "True" Always-on-top behavior
+        # Updated flages for "true" /always on top behavior
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |      # Removes title bar
             Qt.WindowType.WindowStaysOnTopHint |     # Forces to front
             Qt.WindowType.SubWindow |                # Helps on some Linux distros
-            Qt.WindowType.X11BypassWindowManagerHint | # For Linux/X11
-            Qt.WindowType.Window                        # Hides from Taskbar + stays afloat
+            Qt.WindowType.X11BypassWindowManagerHint |# For Linux
+            Qt.WindowType.Window                      # Hides from Taskbar + stays afloat
         )
         
         # This attribute is crucial for transparency and click-through
@@ -106,16 +106,18 @@ class DesktopPet(QWidget):
         self.setMouseTracking(True)  # Add this
         self.label.setMouseTracking(True) # And this for the sprite label
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
-    # -------------------------
+
+        
+    # --------------------------------------------------------------------------------------------------
     # STATES
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_states(self):
         self.states = load_states(self.option)
         self.current_state = "idle"
         self.dx = 0
         self.dy = 0
         self.state_timer = 0
-        self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
+        self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps)
         self.current_state = "idle"
         self.pinned = False
         self.pin_timer = 0
@@ -208,7 +210,7 @@ class DesktopPet(QWidget):
                 else:
                     choice = random.choices(
                         ["enter", "free"],
-                        weights=[0.2, 0.8]
+                        weights=[0.2, 0.8]  #mostly stay out
                     )[0]
 
                     if choice == "enter" and windows:
@@ -224,9 +226,9 @@ class DesktopPet(QWidget):
                 self.target_y = max(0, min(self.target_y, max_y))
     
     
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # SPRITE
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_sprite(self):
         self.label = QLabel(self)
         self.update_appearance()
@@ -236,26 +238,22 @@ class DesktopPet(QWidget):
         self.label.move(center_x, center_y)
 
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # TIMERS
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_timers(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
 
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # SLEEP RELATED
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def on_global_input(self, *args):
         # This is called whenever ANYTHING happens on the computer
-        # Since this runs in a background thread, we reset the timer safely
         self.inactivity_timer = 0
-        
         # If the pet is sleeping, we need to wake it up
-        # Note: We don't change UI here directly because this is a different thread
-        # The tick() function will handle the state switch next frame
 
 
     def eventFilter(self, obj, event):
@@ -280,14 +278,13 @@ class DesktopPet(QWidget):
 
 
     def wake_up(self):
-        # This resets the timer. The tick() function will see this 
-        # and change the state from "sleep" to "idle" automatically.
+        # change the state from "sleep" to "idle" automatically by resetting timer.
         self.inactivity_timer = 0
 
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # MAIN LOOP
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def tick(self):
 
         self.update_obstacles()
@@ -300,7 +297,7 @@ class DesktopPet(QWidget):
             return
 
         if self.dragging:
-            # reset timer
+            # reset timer to stop all other actions while dragging
             self.inactivity_timer = 0
             
             self.update_appearance()
@@ -308,7 +305,7 @@ class DesktopPet(QWidget):
         
         self.inactivity_timer += 1
 
-        # Handle Sleep/Wake transitions
+        # Handle sleep/wake transition
         if self.inactivity_timer >= self.INACTIVITY_LIMIT:
             if self.current_state != "sleep":
                 self.set_state("sleep")
@@ -319,7 +316,7 @@ class DesktopPet(QWidget):
         if self.current_state != "sleep":
             update_behavior(self)
 
-        # Update the visual frame
+        # Update visual frame
         self.update_appearance()
 
 
@@ -332,9 +329,9 @@ class DesktopPet(QWidget):
         event.accept()
 
 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # APPEARANCE
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def update_appearance(self):
         # DRAG STATE OVERRIDE
         # If dragging, freeze on the first frame (index 0)
@@ -407,7 +404,7 @@ class DesktopPet(QWidget):
         if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
             self.label.resize(120, 120)
 
-        # --- 2. GUARD THE ANIMATION TIMING ---
+        # protect animation timing
         # Only advance the frame animation if NOT dragging
         if not getattr(self, 'dragging', False):
             self.frame_counter += 1
@@ -416,9 +413,9 @@ class DesktopPet(QWidget):
                 self.frame_counter = 0
                 self.frame_index = (self.frame_index + 1) % len(frames)
                 
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     # CHAT UI
-    # -------------------------
+    # --------------------------------------------------------------------------------------------------
     def setup_text_bubble(self):
         self.text_bubble = QLabel(self)
         self.text_bubble.setWordWrap(True)
@@ -471,7 +468,7 @@ class DesktopPet(QWidget):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
 
-        if hasattr(self, 'voice_manager'):
+        if hasattr(self, 'voice_manager'): #delete this later
                 self.voice_manager.say(text)
         
         # Center bubble above cat
@@ -493,9 +490,9 @@ class DesktopPet(QWidget):
         self.reply_button.show()
         self.chat_input.hide()
 
-    # -------------------------
+    # ------------------------------------------------------------------------------------------
     # INTERACTION
-    # -------------------------
+    # ------------------------------------------------------------------------------------------
     def setup_interaction(self):
         self.dragging = False
         self.offset = QPoint()
@@ -557,75 +554,12 @@ class DesktopPet(QWidget):
             (self.height() - self.label.height()) // 2
         )
 
-    # -------------------------
+    # ------------------------------------------------------------------------------------------
     # OBSTACLE AVOIDANCE
-    # -------------------------
+    # ------------------------------------------------------------------------------------------
     def update_obstacles(self):
         self.obstacles = get_windows()
-
-
-    def set_intent(self, x, y):
-        self.intent_x = x
-        self.intent_y = y
-
-    
-    def is_full_block(self, w):
-        return (
-            w["x1"] <= 0 and w["y1"] <= 0 and
-            w["x2"] >= self.width() and
-            w["y2"] >= self.height()
-        )
 
     def update_obstacles(self):
         self.obstacles = get_windows()
         self.current_window = get_window_under_pet(self, self.obstacles)
-
-    def choose_window_intent(self):
-        self.update_obstacles()
-
-        windows = self.obstacles
-        current = self.current_window
-
-        # -------------------------
-        # No windows available
-        # -------------------------
-        if not windows:
-            return "roam", None
-
-        # -------------------------
-        # Inside a window
-        # -------------------------
-        if current:
-            intent = random.choices(
-                ["stay", "enter", "leave"],
-                weights=[0.75, 0.15, 0.10]  # tweak personality here
-            )[0]
-
-            # STAY in current window
-            if intent == "stay":
-                return "stay", current
-
-            # ENTER a different window
-            elif intent == "enter":
-                others = [w for w in windows if w != current]
-                if others:
-                    return "enter", random.choice(others)
-                return "stay", current
-
-            # LEAVE current window entirely
-            elif intent == "leave":
-                return "leave", current
-
-        # -------------------------
-        # Not inside any window
-        # -------------------------
-        else:
-            intent = random.choices(
-                ["enter", "roam"],
-                weights=[0.85, 0.15]
-            )[0]
-
-            if intent == "enter":
-                return "enter", random.choice(windows)
-
-            return "roam", None
