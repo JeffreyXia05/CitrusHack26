@@ -14,6 +14,7 @@ from pynput import keyboard as pynput_keyboard
 from states import load_states
 from behavior import update_behavior
 from encouragement import EncouragementSystem
+from voice import VoiceManager
 
 class DesktopPet(QWidget):
     def __init__(self, option):
@@ -73,6 +74,9 @@ class DesktopPet(QWidget):
         self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
         
         self.encouragement = EncouragementSystem(self)
+
+        api_key = os.getenv("ELEVEN_API_KEY")
+        self.voice_manager = VoiceManager(api_key)
 
 
     # -------------------------
@@ -436,6 +440,9 @@ class DesktopPet(QWidget):
     def show_encouragement(self, text):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
+
+        if hasattr(self, 'voice_manager'):
+                self.voice_manager.say(text)
         
         # Center bubble above cat
         bubble_x = self.label.x() + (self.label.width() - self.text_bubble.width()) // 2
@@ -492,8 +499,6 @@ class DesktopPet(QWidget):
                     self.pin_duration = 9999
                     
                     self.state_duration = self.pin_duration
-                    if hasattr(self, 'animation'):
-                        self.animation.stop() 
                     
                     self.current_state = "idle"  
                     self.set_state("sleep")

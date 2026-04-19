@@ -2,6 +2,7 @@ import random
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication
 from PyQt6.QtCore import Qt, QPoint, QTimer
 from PyQt6.QtGui import QFont
+from voice import VoiceManager
 
 
 ENCOURAGEMENT_WORDS = [
@@ -53,6 +54,9 @@ class EncouragementSystem:
         word = random.choice(ENCOURAGEMENT_WORDS)
         if self.pet.current_state == "speak":
             self.pet.show_encouragement(word)
+
+            if hasattr(self.pet, 'voice_manager'):
+                self.pet.voice_manager.say(word)
             
             # Show the chat input right below the bubble
             self.pet.chat_input.move(
