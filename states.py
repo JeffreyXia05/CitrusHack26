@@ -113,7 +113,7 @@ def load_states(option, settings):
         "idle": {
             "variants": idle_variants,
             "fps": 4
-        } if settings.get("idle", True) else None,
+        },
         "walk": {
             "frames": walk_frames, 
             "fps": 12
