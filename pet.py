@@ -1,10 +1,12 @@
 import random
 from google import genai
-from google.genai import types # Needed for system instructions
+from google.genai import types
+import math
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer, QPropertyAnimation
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QCursor
 from windows import get_windows, get_window_under_pet, get_window_center 
+
 
 from pynput import mouse as pynput_mouse
 from pynput import keyboard as pynput_keyboard
@@ -64,6 +66,11 @@ class DesktopPet(QWidget):
         
         self.encouragement = EncouragementSystem(self)
     
+
+        self.last_mouse_pos = QPoint(0, 0)
+        self.mouse_velocity = 0
+        self.is_squished = False
+        self.squish_factor = 1.0  # 1.0 = normal, 0.8 = squished
 
         self.target_x = 0
         self.target_y = 0
@@ -141,68 +148,62 @@ class DesktopPet(QWidget):
             
             elif new_state == "walk":
                 self.state_duration = random.randint(60, 300)
-
                 self.MAX_SPEED = 2
 
-                # pick a random destination
                 windows = getattr(self, "obstacles", [])
-                current_window = get_window_under_pet(self, windows)
+                self.current_window = get_window_under_pet(self, windows)
 
-                if current_window:
+                #INSIDE A WINDOW---------------------------------------------------------
+                if self.current_window:
+
                     choice = random.choices(
-                        ["leave", "stay"],
-                        weights=[0.3, 0.7]
+                        ["stay", "leave"],
+                        weights=[0.8, 0.2]   # mostly stay
                     )[0]
+
+                    if choice == "stay":
+                        w = self.current_window
+                        self.target_x = random.randint(w["x1"], w["x2"] - self.label.width())
+                        self.target_y = random.randint(w["y1"], w["y2"] - self.label.height())
+
+                    else:  # leave
+                        margin = 80
+                        w = self.current_window
+
+                        left_max = w["x1"] - margin
+                        right_min = w["x2"] + margin
+
+                        options = []
+                        if left_max > 0:
+                            options.append((0, left_max))
+                        if right_min < self.width():
+                            options.append((right_min, self.width()))
+
+                        if options:
+                            chosen = random.choice(options)
+                            self.target_x = random.randint(*chosen)
+                        else:
+                            self.target_x = random.randint(0, self.width() - self.label.width())
+
+                        self.target_y = random.randint(0, self.height() - self.label.height())
+
+                # OUTSIDE A WINDOW--------------------------------------------------------------
                 else:
                     choice = random.choices(
                         ["enter", "free"],
                         weights=[0.5, 0.5]
                     )[0]
-                # -------------------------
-                # ENTER WINDOW
-                # -------------------------
-                if choice == "enter" and windows:
-                    w = random.choice(windows)
 
-                    self.target_x = random.randint(w["x1"], w["x2"] - self.label.width())
-                    self.target_y = random.randint(w["y1"], w["y2"] - self.label.height())
+                    if choice == "enter" and windows:
+                        w = random.choice(windows)
+                        self.target_x = random.randint(w["x1"], w["x2"] - self.label.width())
+                        self.target_y = random.randint(w["y1"], w["y2"] - self.label.height())
 
-                # -------------------------
-                # LEAVE WINDOW
-                # -------------------------
-                elif choice == "leave" and current_window:
-                    margin = 80
-
-                    left_max = current_window["x1"] - margin
-                    right_min = current_window["x2"] + margin
-
-                    options = []
-
-                    # LEFT side (only if valid)
-                    if left_max > 0:
-                        options.append((0, left_max))
-
-                    # RIGHT side (only if valid)
-                    if right_min < self.width():
-                        options.append((right_min, self.width()))
-
-                    # fallback if no valid options
-                    if not options:
-                        self.target_x = random.randint(0, self.width() - self.label.width())
                     else:
-                        chosen = random.choice(options)
-                        self.target_x = random.randint(chosen[0], chosen[1])
-
-                    # Y can stay normal
-                    self.target_y = random.randint(0, self.height() - self.label.height())
-
-                # -------------------------
-                # FREE WALK
-                # -------------------------
-                else:
-                    self.target_x = random.randint(0, self.width() - self.label.width())
-                    self.target_y = random.randint(0, self.height() - self.label.height())
-            
+                        self.target_x = random.randint(0, self.width() - self.label.width())
+                        self.target_y = random.randint(0, self.height() - self.label.height())
+    
+    
     # -------------------------
     # SPRITE
     # -------------------------
@@ -214,15 +215,26 @@ class DesktopPet(QWidget):
         center_y = (screen.height() - self.label.height()) // 2
         self.label.move(center_x, center_y)
 
+
+    # -------------------------
+    # SYSTEMS
+    # -------------------------
+    def setup_systems(self):
+        self.encouragement = EncouragementSystem(self)
+
+
+    # -------------------------
+    # TIMERS
+    # -------------------------
     def setup_timers(self):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.tick)
         self.timer.start(16)
 
-    # =========================
-    # SLEEP RELATED
-    # =========================
 
+    # -------------------------
+    # SLEEP RELATED
+    # -------------------------
     def on_global_input(self, *args):
         # This is called whenever ANYTHING happens on the computer
         # Since this runs in a background thread, we reset the timer safely
@@ -231,6 +243,7 @@ class DesktopPet(QWidget):
         # If the pet is sleeping, we need to wake it up
         # Note: We don't change UI here directly because this is a different thread
         # The tick() function will handle the state switch next frame
+
 
     def eventFilter(self, obj, event):
         # Detect Mouse Movement, Clicks, or Keyboard Presses
@@ -243,6 +256,7 @@ class DesktopPet(QWidget):
         
         return super().eventFilter(obj, event)
 
+
     def setup_global_listeners(self):
         # Ensure these names match what is in closeEvent
         self.m_listener = pynput_mouse.Listener(on_move=lambda x, y: self.wake_up())
@@ -251,11 +265,16 @@ class DesktopPet(QWidget):
         self.m_listener.start()
         self.k_listener.start()
 
+
     def wake_up(self):
         # This resets the timer. The tick() function will see this 
         # and change the state from "sleep" to "idle" automatically.
         self.inactivity_timer = 0
 
+
+    # -------------------------
+    # MAIN LOOP
+    # -------------------------
     def tick(self):
         self.update_obstacles()
 
@@ -274,6 +293,7 @@ class DesktopPet(QWidget):
 
         self.update_appearance()
 
+
     def closeEvent(self, event):
         # Check if they exist before stopping to prevent errors on early exit
         if hasattr(self, 'm_listener'):
@@ -281,36 +301,71 @@ class DesktopPet(QWidget):
         if hasattr(self, 'k_listener'):
             self.k_listener.stop()
         event.accept()
+
+
+    # -------------------------
+    # APPEARANCE
+    # -------------------------
     def update_appearance(self):
         state_data = self.states.get(self.current_state)
-
         if not state_data:
-            print(f"Error: missing state '{self.current_state}'")
             return
 
-        # This ensures 'frames' is defined for the rest of the function
         frames = state_data["frames"]
         pixmap = frames[self.frame_index]
 
-        # Use FastTransformation for crisp pixel art clarity
+        # tracks mouse
+        global_mouse = QCursor.pos()
+        local_mouse = self.label.mapFromGlobal(global_mouse)
+        
+        # space for petting
+        in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
+        
+        if not hasattr(self, 'last_mouse_pos'): self.last_mouse_pos = global_mouse
+        if not hasattr(self, 'squish_factor'): self.squish_factor = 1.0
+
+        # calculate squish based on velocity
+        dx = global_mouse.x() - self.last_mouse_pos.x()
+        dy = global_mouse.y() - self.last_mouse_pos.y()
+        total_movement = math.sqrt(dx**2 + dy**2)
+        
+        self.last_mouse_pos = global_mouse
+
+        # only in idle state
+        if self.current_state == "idle":
+            in_rub_zone = -20 < local_mouse.x() < 140 and -40 < local_mouse.y() < 60
+            
+            if in_rub_zone and total_movement > 5:
+                # squish down when being pet
+                self.squish_factor = max(0.75, self.squish_factor - 0.08)
+            else:
+                self.squish_factor = min(1.0, self.squish_factor + 0.03)
+        else:
+            # force recovery when not idle
+            self.squish_factor = min(1.0, self.squish_factor + 0.05)
+
+        target_w = 120
+        target_h = int(120 * self.squish_factor)
+
         scaled = pixmap.scaled(
-            120, 120,
-            Qt.AspectRatioMode.KeepAspectRatio,
+            target_w, target_h,
+            Qt.AspectRatioMode.IgnoreAspectRatio,
             Qt.TransformationMode.FastTransformation
         )
 
         self.label.setPixmap(scaled)
         
-        # Only resize the label if the movement animation ISN'T running
-        # This prevents the pet from 'stuttering' during the sleep crawl
+        # keep cat's feet vertically position the same
+        top_margin = 120 - target_h
+        self.label.setContentsMargins(0, top_margin, 0, 0)
+        
         if not hasattr(self, 'animation') or self.animation.state() != QPropertyAnimation.State.Running:
-            self.label.resize(scaled.size())
+            self.label.resize(120, 120)
 
         self.frame_counter += 1
         fps = state_data.get("fps", 2)
         if self.frame_counter >= (60 // fps):
             self.frame_counter = 0
-            # Use the frames variable we defined above
             self.frame_index = (self.frame_index + 1) % len(frames)
 
     # -------------------------
@@ -444,3 +499,57 @@ class DesktopPet(QWidget):
             w["x2"] >= self.width() and
             w["y2"] >= self.height()
         )
+
+    def update_obstacles(self):
+        self.obstacles = get_windows()
+        self.current_window = get_window_under_pet(self, self.obstacles)
+
+    def choose_window_intent(self):
+        self.update_obstacles()
+
+        windows = self.obstacles
+        current = self.current_window
+
+        # -------------------------
+        # No windows available
+        # -------------------------
+        if not windows:
+            return "roam", None
+
+        # -------------------------
+        # Inside a window
+        # -------------------------
+        if current:
+            intent = random.choices(
+                ["stay", "enter", "leave"],
+                weights=[0.75, 0.15, 0.10]  # tweak personality here
+            )[0]
+
+            # STAY in current window
+            if intent == "stay":
+                return "stay", current
+
+            # ENTER a different window
+            elif intent == "enter":
+                others = [w for w in windows if w != current]
+                if others:
+                    return "enter", random.choice(others)
+                return "stay", current
+
+            # LEAVE current window entirely
+            elif intent == "leave":
+                return "leave", current
+
+        # -------------------------
+        # Not inside any window
+        # -------------------------
+        else:
+            intent = random.choices(
+                ["enter", "roam"],
+                weights=[0.85, 0.15]
+            )[0]
+
+            if intent == "enter":
+                return "enter", random.choice(windows)
+
+            return "roam", None
