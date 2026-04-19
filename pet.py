@@ -7,7 +7,6 @@ from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer, QPropertyAnimation
 from PyQt6.QtGui import QFont, QCursor
 from windows import get_windows, get_window_under_pet, get_window_center 
 
-
 from pynput import mouse as pynput_mouse
 from pynput import keyboard as pynput_keyboard
 
@@ -20,32 +19,31 @@ class DesktopPet(QWidget):
     def __init__(self, option):
         super().__init__()
 
-        # Initialize basic variables first
+        # initialized variables for the pet's behavior, animation, and screen size
         self.frame_counter = 0
         self.frame_index = 0
         self.last_speak_state = None
         self.current_encouragement = None
         self.inactivity_timer = 0
         self.INACTIVITY_LIMIT = 30 * 60 
-        self.dragging = False  # Ensure this exists early
+        self.dragging = False 
         self.option = option
 
-        #Setup data (visuals)
-        self.setup_states()    # This creates self.states and self.current_state
+        # states initialization
+        self.setup_states()
 
-        # 3. Setup visuals (Now update_appearance works)
-        self.setup_sprite()    # Creates self.label and calls update_appearance
-        self.setup_window()    # Configures the window and mouse tracking
+        # sprite and window setup
+        self.setup_sprite()
+        self.setup_window()
         
-        # 4. Setup everything else
+        # systems and gimmicks related stuff
         self.setup_systems() 
         self.setup_text_bubble()
         self.setup_timers()
         self.setup_interaction()
-        
-        self.installEventFilter(self)
         self.setup_global_listeners() 
 
+        # variables for petting
         self.last_mouse_pos = QPoint(0, 0)
         self.mouse_velocity = 0
         self.is_squished = False
@@ -61,21 +59,22 @@ class DesktopPet(QWidget):
         import os
         from dotenv import load_dotenv
         load_dotenv()
-        # Configure Gemini
+        # gemini client setup
         self.client = genai.Client(
             api_key=os.getenv("GEMINI_API_KEY"),
         )
-        #Define the persona using a Config object
+        # tells the chat box the persona of the cat
         self.chat_config = types.GenerateContentConfig(
             system_instruction="You are a digital cat. You start by giving encouragement. "
                                "If the user talks back, be a cat: use puns, 'meow', and stay brief."
         )
         
-        # Start the chat session
+        # start the chat session
         self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
         
         self.encouragement = EncouragementSystem(self)
-
+        
+        # elevenlabs voice setup
         api_key = os.getenv("ELEVEN_API_KEY")
         self.voice_manager = VoiceManager(api_key) #delete this
 
@@ -268,6 +267,7 @@ class DesktopPet(QWidget):
         return super().eventFilter(obj, event)
 
 
+    # tracks mouse for waking up
     def setup_global_listeners(self):
         # Ensure these names match what is in closeEvent
         self.m_listener = pynput_mouse.Listener(on_move=lambda x, y: self.wake_up())
