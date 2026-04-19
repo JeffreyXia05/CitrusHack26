@@ -4,6 +4,9 @@ from PyQt6.QtWidgets import (
 
 from settings import SettingsDialog
 
+# ------------------------------------------------------------------------------------------
+#  LAUNCHER
+# ------------------------------------------------------------------------------------------
 class Launcher(QWidget):
     def __init__(self, on_deploy):
         super().__init__()

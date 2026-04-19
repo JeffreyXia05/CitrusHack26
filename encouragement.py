@@ -1,8 +1,5 @@
 import random
-from PyQt6.QtWidgets import QWidget, QLabel, QApplication
-from PyQt6.QtCore import Qt, QPoint, QTimer
-from PyQt6.QtGui import QFont
-from voice import VoiceManager #delete this
+from PyQt6.QtCore import QTimer
 
 
 ENCOURAGEMENT_WORDS = [
@@ -25,7 +22,9 @@ ENCOURAGEMENT_WORDS = [
     "I'm itchy"
 ]
 
-
+# ------------------------------------------------------------------------------------------
+# PHRASES OF ENCOURGEMENT
+# ------------------------------------------------------------------------------------------
 class EncouragementSystem:
     def __init__(self, pet):
         self.pet = pet
@@ -44,10 +43,9 @@ class EncouragementSystem:
 
 
     def show_random_encouragement(self):
-        """Pick a message and open the chat input."""
         if self.pet.text_bubble.isVisible():
             self.pet.text_bubble.hide()
-            self.pet.chat_input.hide() # Hide input when bubble closes
+            self.pet.chat_input.hide()
             self.timer.start(random.randint(3000, 15000))
             return
 

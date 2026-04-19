@@ -4,10 +4,12 @@ import pygame
 import threading
 from elevenlabs.client import ElevenLabs
 
+# ------------------------------------------------------------------------------------------
+# VOICE MANAGER
+# ------------------------------------------------------------------------------------------
 class VoiceManager:
     def __init__(self, api_key):
         self.client = ElevenLabs(api_key=api_key)
-        #initialize mixer with error handling
         try:
             if not pygame.mixer.get_init():
                 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -40,7 +42,6 @@ class VoiceManager:
             sound_file = io.BytesIO(audio_bytes)
             sound_file.seek(0)
             
-            # enable mixer to run from memory
             pygame.mixer.music.load(sound_file)
             pygame.mixer.music.play()
 
