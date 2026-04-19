@@ -113,6 +113,9 @@ class DesktopPet(QWidget):
         self.state_timer = 0
         self.state_duration = random.randint(120, 300)  # frames (2–5 sec at 60fps approx)
         self.current_state = "idle"
+        self.pinned = False
+        self.pin_timer = 0
+        self.pin_duration = 0
         
 
     def set_state(self, new_state):
@@ -284,6 +287,13 @@ class DesktopPet(QWidget):
     def tick(self):
 
         self.update_obstacles()
+
+        if self.pinned:
+            self.pin_timer += 1
+            if self.pin_timer >= self.pin_duration:
+                self.pinned = False
+                self.set_state("idle")  # wake up when pin expires
+            return
 
         if self.dragging:
             # reset timer
@@ -495,11 +505,30 @@ class DesktopPet(QWidget):
                 self.dragging = True
                 self.offset = event.pos() - self.label.pos()
                 
-                # FIX: Check if 'animation' exists before calling .stop()
+                # FIX: Check if 'animation' exists before calling .stop() 
                 if hasattr(self, 'animation'):
                     self.animation.stop() 
                 
                 self.set_state("drag")
+
+        if event.button() == Qt.MouseButton.RightButton:
+            if self.label.geometry().contains(event.pos()):
+                if self.pinned == True:
+                    self.set_state("idle")
+                    self.pinned = False
+                else:
+                    self.pinned = True
+                    self.pin_timer = 0
+                    self.pin_duration = 9999
+                    
+                    self.state_duration = self.pin_duration
+                    if hasattr(self, 'animation'):
+                        self.animation.stop() 
+                    
+                    self.current_state = "idle"  
+                    self.set_state("sleep")
+                    self.update_appearance()
+                    self.state_duration = self.pin_duration
 
     def mouseMoveEvent(self, event):
         if self.dragging:
