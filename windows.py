@@ -1,6 +1,6 @@
 import win32gui
 
-PET_TITLE_KEYWORD = "python3"  # or whatever your window title contains
+PET_TITLE_KEYWORD = "python3"
 
 def get_windows():
     windows = []
@@ -13,13 +13,13 @@ def get_windows():
         if not title.strip():
             return
 
-        # 🚨 IMPORTANT: ignore your own app window
+        # ignore own app window
         if PET_TITLE_KEYWORD in title or title == "Settings" or title == "Windows Input Experience" or title == "Windows Shell Experience Host" or title == "Program Manager":
             return
 
         rect = win32gui.GetWindowRect(hwnd)
 
-        # ignore zero-size windows (tooltips, etc.)
+        # ignore zero-size windows 
         if rect[2] - rect[0] < 50 or rect[3] - rect[1] < 50:
             return
 

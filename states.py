@@ -25,7 +25,7 @@ def load_states(option):
 
     full_sheet = QPixmap(sheet_path)
 
-    TILE_SIZE = 32  # each frame is 32x32
+    TILE_SIZE = 32  
 
     # -------------------------
     # FRAME SLICER
@@ -117,7 +117,5 @@ def load_states(option):
             "frames": drag_frames,
             "fps": 1
         }
-
-
     }
 
