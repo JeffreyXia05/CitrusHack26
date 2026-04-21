@@ -3,12 +3,12 @@ import math
 
 # ------------------------------------------------------------------------------------------
 # MAIN BEHAVIOR LOOP
-# -------------------------
+# ------------------------------------------------------------------------------------------
 def update_behavior(pet, walkBool, speakBool, sleepBool):
     # If the user is typing, don't tick the state timer
-    if speakBool:
+    if pet.current_state == "speak" and getattr(pet, "chat_input", None):
         if pet.chat_input.hasFocus():
-            return 
+            return
 
     if pet.current_state == "sleep" and sleepBool:
         sleep(pet)
@@ -20,7 +20,10 @@ def update_behavior(pet, walkBool, speakBool, sleepBool):
         idle(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.set_state("speak" if random.random() < 0.4 else "walk")
+            if random.random() < 0.3:
+                pet.set_state("speak")
+            else:
+                pet.set_state("walk")
             
             
     elif pet.current_state == "walk" and walkBool:
@@ -33,8 +36,6 @@ def update_behavior(pet, walkBool, speakBool, sleepBool):
         speak(pet)
 
         if pet.state_timer >= pet.state_duration:
-            pet.text_bubble.hide()
-            pet.chat_input.hide()
             pet.set_state("idle")
 
 
@@ -110,6 +111,7 @@ def reached_target(pet):
         abs(pet.label.x() - pet.target_x) < 3 and
         abs(pet.label.y() - pet.target_y) < 3
     )
+
 def speak(pet):
     pass
 

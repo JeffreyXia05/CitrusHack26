@@ -43,23 +43,8 @@ class EncouragementSystem:
 
 
     def show_random_encouragement(self):
-        if self.pet.text_bubble.isVisible():
-            self.pet.text_bubble.hide()
-            self.pet.chat_input.hide()
-            self.timer.start(random.randint(3000, 15000))
+        if self.pet.current_state != "speak":
             return
 
         word = random.choice(ENCOURAGEMENT_WORDS)
-        if self.pet.current_state == "speak":
-            self.pet.show_encouragement(word)
-
-            if hasattr(self.pet, 'voice_manager'): #delete this
-                self.pet.voice_manager.say(word)
-            
-            # Show the chat input right below the bubble
-            self.pet.chat_input.move(
-                self.pet.text_bubble.x(), 
-                self.pet.text_bubble.y() + self.pet.text_bubble.height() + 5
-            )
-            self.pet.chat_input.setFixedWidth(self.pet.text_bubble.width())
-            self.pet.chat_input.setFocus()
+        self.pet.show_encouragement(word)

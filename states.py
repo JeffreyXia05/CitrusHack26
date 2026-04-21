@@ -1,10 +1,18 @@
 import os
+import sys
 import random
 from PyQt6.QtGui import QPixmap
 
-BASE_DIR = os.path.dirname(__file__)
-ASSETS = os.path.join(BASE_DIR, "assets")
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS  # PyInstaller temp folder
+    except Exception:
+        base_path = os.path.abspath(".")  # normal run
 
+    return os.path.join(base_path, relative_path)
+
+BASE_DIR = os.path.dirname(__file__)
+ASSETS = resource_path("assets")
 
 def load_states(option, settings):
     # -------------------------
@@ -43,17 +51,17 @@ def load_states(option, settings):
     # IDLE (single row animation)
     # -------------------------
     idle_variants = [
-        get_frames(row=0, frame_count=1) * 10 + get_frames(row=36, frame_count=8) + get_frames(row=0, frame_count=6), #22
-        get_frames(row=0, frame_count=1) * 4 + get_frames(row=20, frame_count=8) + get_frames(row=33, frame_count=8) + get_frames(row=0, frame_count=1) * 4, #24
-        get_frames(row=0, frame_count=1) * 2 + get_frames(row=39, frame_count=11) * 2, #24
-        get_frames(row=0, frame_count=1) * 2 + get_frames(row=40, frame_count=11) * 2, #24
-        get_frames(row=37, frame_count=7) * 2 + get_frames(row=29, frame_count=3) + get_frames(row=0, frame_count=6) + get_frames(row=0, frame_count=1), #24
-        get_frames(row=2, frame_count=6) + get_frames(row=30, frame_count=3) * 2 + get_frames(row=2, frame_count=6)  + get_frames(row=30, frame_count=3) * 2, #24
-        get_frames(row=0, frame_count=1) * 8 + get_frames(row=36, frame_count=8) * 2, #24
-        get_frames(row=0, frame_count=1) * 5 + get_frames(row=38, frame_count=7) * 2 + get_frames (row=0, frame_count=1) * 5, #24
-        get_frames(row=34, frame_count=1) * 8 + get_frames(row=34, frame_count=8) + get_frames(row=34, frame_count=1) * 8, #24
-        get_frames(row=0, frame_count=1) * 4 + get_frames(row=52, frame_count=4) * 2 + get_frames(row=0, frame_count=1) * 4 + get_frames(row=52, frame_count=4) * 2, #24
-        get_frames(row=2, frame_count=1) * 8 + get_frames(row=34, frame_count=8) + get_frames(row=2, frame_count=1) * 8 #14
+        get_frames(row=0, frame_count=1) * 18 + get_frames(row=36, frame_count=8) + get_frames(row=0, frame_count=6), #32
+        get_frames(row=0, frame_count=1) * 12 + get_frames(row=20, frame_count=8) + get_frames(row=33, frame_count=8) + get_frames(row=0, frame_count=1) * 4, #32
+        get_frames(row=0, frame_count=1) * 10 + get_frames(row=39, frame_count=11) + get_frames(row=0, frame_count=1) * 11, #32
+        get_frames(row=0, frame_count=1) * 10 + get_frames(row=40, frame_count=11) + get_frames(row=0, frame_count=1) * 11, #32
+        get_frames(row=37, frame_count=1) * 10 + get_frames(row=29, frame_count=3) + get_frames(row=37, frame_count=9) + get_frames(row=37, frame_count=1) * 10, #32
+        get_frames(row=2, frame_count=1) * 7 + get_frames(row=30, frame_count=3) * 2 + get_frames(row=2, frame_count=6)  + get_frames(row=30, frame_count=3) * 2 + get_frames(row=2, frame_count=1) * 7, #32
+        get_frames(row=0, frame_count=1) * 12 + get_frames(row=36, frame_count=8) + get_frames(row=0, frame_count=1) * 12, #32
+        get_frames(row=38, frame_count=1) * 9 + get_frames(row=38, frame_count=7) * 2 + get_frames(row=38, frame_count=1) * 9, #32
+        get_frames(row=34, frame_count=1) * 12 + get_frames(row=34, frame_count=8) + get_frames(row=34, frame_count=1) * 12, #32
+        get_frames(row=0, frame_count=1) * 12 + get_frames(row=52, frame_count=4) * 2 + get_frames(row=0, frame_count=1) * 12, #32
+        get_frames(row=2, frame_count=1) * 12 + get_frames(row=34, frame_count=8) + get_frames(row=2, frame_count=1) * 12 #32
     ]
     # -------------------------
     # WALK (8 directions) and (spinning walk)
@@ -112,7 +120,7 @@ def load_states(option, settings):
     return {
         "idle": {
             "variants": idle_variants,
-            "fps": 4
+            "fps": 5
         },
         "walk": {
             "frames": walk_frames, 

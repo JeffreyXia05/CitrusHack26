@@ -1,6 +1,4 @@
 import random
-from google import genai
-from google.genai import types
 import math
 from PyQt6.QtWidgets import QWidget, QLabel, QApplication, QLineEdit, QPushButton
 from PyQt6.QtCore import Qt, QEvent, QPoint, QTimer, QPropertyAnimation
@@ -13,7 +11,6 @@ from pynput import keyboard as pynput_keyboard
 from states import load_states
 from behavior import update_behavior
 from encouragement import EncouragementSystem
-from voice import VoiceManager 
 
 class DesktopPet(QWidget):
     def __init__(self, option, settings):
@@ -25,7 +22,7 @@ class DesktopPet(QWidget):
         self.last_speak_state = None
         self.current_encouragement = None
         self.inactivity_timer = 0
-        self.INACTIVITY_LIMIT = 30 * 60 
+        self.INACTIVITY_LIMIT = 60 * 60 * 10  # 10 seconds at 60fps
         self.dragging = False 
         self.option = option
         self.settings = settings
@@ -59,33 +56,7 @@ class DesktopPet(QWidget):
         self.target_y = 0
         self.direction = "down"
 
-    # --------------------------------------------------------------------------------------------------
-    # SYSTEMS
-    # --------------------------------------------------------------------------------------------------
-    def setup_systems(self):
-        import os
-        from dotenv import load_dotenv
-        load_dotenv()
-        # gemini client setup
-        self.client = genai.Client(
-            api_key=os.getenv("GEMINI_API_KEY"),
-        )
-        # tells the chat box the persona of the cat
-        self.chat_config = types.GenerateContentConfig(
-            system_instruction="You are a digital cat. You start by giving encouragement. "
-                               "If the user talks back, be a cat: use puns, 'meow', and stay brief."
-        )
-        
-        # start the chat session
-        self.chat_session = self.client.chats.create(model="gemini-2.5-flash-lite", config=self.chat_config)
-        
-        if self.speak:
-            self.encouragement = EncouragementSystem(self)
-        
-        # elevenlabs voice setup
-        api_key = os.getenv("ELEVEN_API_KEY")
-        self.voice_manager = VoiceManager(api_key)
-
+        self.idle_frame_index = 0
 
     # --------------------------------------------------------------------------------------------------
     # WINDOW
@@ -97,8 +68,7 @@ class DesktopPet(QWidget):
         # Updated flages for "true" /always on top behavior
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint |
-            Qt.WindowType.Window              |       # Hides from Taskbar + stays afloat
-            Qt.WindowType.Tool                        # Hides from Taskbar on some platforms
+            Qt.WindowType.Window                      # Hides from Taskbar + stays afloat
         )
         
         # This attribute is crucial for transparency and click-through
@@ -127,12 +97,17 @@ class DesktopPet(QWidget):
         self.pin_timer = 0
         self.pin_duration = 0
         
-
+    def setup_systems(self):
+        if self.speak:
+            self.encouragement = EncouragementSystem(self)
+            
     def set_state(self, new_state):
         if self.current_state == "speak" and new_state != "speak" and self.speak:
             self.text_bubble.hide()
-            self.chat_input.hide() 
-            self.reply_button.hide()
+            if hasattr(self, "chat_input"):
+                self.chat_input.hide()
+            if hasattr(self, "reply_button"):
+                self.reply_button.hide()
             self.current_encouragement = None
             self.last_speak_state = None
             
@@ -146,11 +121,11 @@ class DesktopPet(QWidget):
             self.state_timer = 0
 
             if new_state == "idle":
-                self.state_duration = random.randint(360, 600)
+                self.state_duration = random.randint(600, 60 * 120)  # 10 sec to 1 min
                 idle_variants = self.states["idle"]["variants"]
                 self.current_idle_frames = random.choice(idle_variants)
             elif new_state == "speak" and self.speak:
-                self.state_duration = random.randint(250, 400)
+                self.state_duration = random.randint(600, 1200)  # 10 sec to 1 min
                 self.encouragement.trigger()
 
             elif new_state == "sleep" and self.sleep:
@@ -183,7 +158,7 @@ class DesktopPet(QWidget):
 
                     choice = random.choices(
                         ["stay", "leave"],
-                        weights=[0.8, 0.2]   # mostly stay
+                        weights=[0.9, 0.1]   # mostly stay
                     )[0]
 
                     if choice == "stay":
@@ -216,7 +191,7 @@ class DesktopPet(QWidget):
                 else:
                     choice = random.choices(
                         ["enter", "free"],
-                        weights=[0.2, 0.8] 
+                        weights=[0.1, 0.9] 
                     )[0]
 
                     if choice == "enter" and windows:
@@ -352,6 +327,8 @@ class DesktopPet(QWidget):
         if self.current_state == "idle":
             if not hasattr(self, "current_idle_frames"):
                 self.current_idle_frames = random.choice(state_data["variants"])
+                self.idle_frame_index = 0
+
             frames = self.current_idle_frames
 
         elif self.current_state == "sleep":
@@ -369,7 +346,10 @@ class DesktopPet(QWidget):
         if not frames:
             return
         
-        pixmap = frames[self.frame_index % len(frames)]
+        if self.current_state == "idle":
+            pixmap = frames[self.idle_frame_index % len(frames)]
+        else:
+            pixmap = frames[self.frame_index % len(frames)]
 
         # tracks mouse
         global_mouse = QCursor.pos()
@@ -413,11 +393,22 @@ class DesktopPet(QWidget):
 
         # protect animation timing
         # Only advance the frame animation if NOT dragging
-        if not getattr(self, 'dragging', False):
-            self.frame_counter += 1
-            fps = state_data.get("fps", 2)
-            if self.frame_counter >= (60 // fps):
-                self.frame_counter = 0
+        self.frame_counter += 1
+        fps = state_data.get("fps", 2)
+
+        if self.frame_counter >= (60 // fps):
+            self.frame_counter = 0
+
+            if self.current_state == "idle":
+                self.idle_frame_index += 1
+
+                # finished current idle animation
+                if self.idle_frame_index >= len(frames):
+                    self.current_idle_frames = random.choice(state_data["variants"])
+                    self.idle_frame_index = 0
+                    self.frame_counter = -random.randint(10, 60)  # small random delay between idle animations
+
+            else:
                 self.frame_index = (self.frame_index + 1) % len(frames)
                 
     # --------------------------------------------------------------------------------------------------
@@ -433,22 +424,6 @@ class DesktopPet(QWidget):
         )
         self.text_bubble.hide()
 
-        # Reply Button
-        self.reply_button = QPushButton("Reply", self)
-        self.reply_button.setFixedWidth(40)
-        self.reply_button.setStyleSheet(
-            "background-color: #eee; color: black; border-radius: 5px; font-size: 10px;"
-        )
-        self.reply_button.hide()
-        self.reply_button.clicked.connect(self.show_chat_input)
-
-        self.chat_input = QLineEdit(self)
-        self.chat_input.setPlaceholderText("Reply...")
-        self.chat_input.setStyleSheet("background: white; color: black; border: 1px solid #ccc; border-radius: 5px;")
-        self.chat_input.setFixedWidth(120)
-        self.chat_input.hide()
-        self.chat_input.returnPressed.connect(self.handle_chat_input)
-
     def show_chat_input(self):
         """Swaps the reply button for the text box."""
         self.reply_button.hide()
@@ -456,27 +431,50 @@ class DesktopPet(QWidget):
         self.chat_input.setFocus()
 
     def handle_chat_input(self):
-        user_text = self.chat_input.text()
-        if not user_text: return
-        
+        user_text = self.chat_input.text().strip()
+        if not user_text:
+            return
+
         self.chat_input.clear()
-        self.show_encouragement("...") 
-        
+        self.chat_input.hide()
+
+        self.show_encouragement("...")
+
         try:
-            response = self.chat_session.send_message(user_text)
-            self.state_timer = 0 
-            self.state_duration = random.randint(200, 300) 
-            self.show_encouragement(response.text)
+            response = self.get_local_response(user_text)
+            self.state_duration = random.randint(200, 300)
+
+            QTimer.singleShot(400, lambda: self.show_encouragement(response))
+
         except Exception as e:
             print(f"Error: {e}")
             self.show_encouragement("Meow... (Something went wrong with my brain!)")
+    
+    def get_local_response(self, text):
+        text = text.lower()
 
+        if "hello" in text or "hi" in text:
+            return "Meow! Hi there 🐾"
+        elif "how are you" in text:
+            return "I'm feline good 😸"
+        elif "tired" in text:
+            return "You should rest! I'll nap with you 💤"
+        elif "sad" in text:
+            return "Aww... come here, human 🐱💛"
+        elif "bye" in text:
+            return "Bye! Don't forget to hydrate 💧"
+        else:
+            return random.choice([
+                "Meow?",
+                "I'm just a little cat 🐾",
+                "Tell me more!",
+                "Purr... interesting...",
+                "Hehe 😺"
+            ])
+        
     def show_encouragement(self, text):
         self.text_bubble.setText(text)
         self.text_bubble.adjustSize()
-
-        if hasattr(self, 'voice_manager') and self.speak: #delete this later
-                self.voice_manager.say(text)
         
         # Center bubble above cat
         bubble_x = self.label.x() + (self.label.width() - self.text_bubble.width()) // 2
@@ -484,18 +482,10 @@ class DesktopPet(QWidget):
         # Flip below if not enough room above
         if self.label.y() - self.text_bubble.height() - 10 < 0:
             bubble_y = self.label.y() + self.label.height() + 5 # below cat
-            button_y = bubble_y + self.text_bubble.height() + 5
         else:
-            bubble_y = self.label.y() - self.text_bubble.height() - 10  # above cat
-            button_y = bubble_y + self.text_bubble.height() + 5
+            bubble_y = self.label.y() - self.text_bubble.height()  # above cat
         self.text_bubble.move(bubble_x, bubble_y)
         self.text_bubble.show()
-
-        # Center reply button below bubble
-        button_x = self.label.x() + (self.label.width() - self.reply_button.width()) // 2
-        self.reply_button.move(button_x, button_y)
-        self.reply_button.show()
-        self.chat_input.hide()
 
     # ------------------------------------------------------------------------------------------
     # INTERACTION
