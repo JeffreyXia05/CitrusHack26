@@ -58,11 +58,11 @@ class Launcher(QWidget):
         instructions_layout.addWidget(QLabel("Thank you for using PCat! Here are some tips to get you started:"))
         instructions_layout.addWidget(QLabel("This virtual cat will explore your computer and sometimes take in the view (or maybe do some self care)")),
         instructions_layout.addWidget(QLabel("It may even talk to you sometimes, giving you encouragement or just random cat thoughts!")),
-        instructions_layout.addWidget(QLabel("When it does so, give it some love by responding in the chat box! It loves attention and will respond to your messages!")),
-        instructions_layout.addWidget(QLabel("Occasionally, it may grow bored if you leave it alone and choose to take a nap. No wories, it will wake up whwen you come back!")),
-        instructions_layout.addWidget(QLabel("If PCat is in the way, right click to put it to bed for a little while. Also, don't forget to pet it every once in a while!")),
-        instructions_layout.addWidget(QLabel("If you need to change your PCat to fit your computer vibe, head to the settings tab in the launcher to change sprites, behavior, and more!"))
-        instructions_layout.addWidget(QLabel("Of course, sometimes you need your space, and PCat understands. To send PCat home, just left click him once and press the esacape key!"))
+        instructions_layout.addWidget(QLabel("If PCat is in the way, right click to put it to bed for a little while.")),
+        instructions_layout.addWidget(QLabel("Give your PCat lots of love by running your mouse over the top of it so it can get lots of pets!")),
+        instructions_layout.addWidget(QLabel("If you ever leave your computer for a while, PCat will take a nap and wait for you to come back.")),
+        instructions_layout.addWidget(QLabel("To change your PCat to fit your computer vibe, head to the settings tab in the launcher to change sprites, behavior, and more!"))
+        instructions_layout.addWidget(QLabel("Of course, sometimes you need your space, and PCat understands. To send PCat home, just left click him once and press the escape key!"))
 
         self.instructions_window.setLayout(instructions_layout)
         self.instructions_window.show()
