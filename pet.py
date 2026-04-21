@@ -121,7 +121,7 @@ class DesktopPet(QWidget):
             self.state_timer = 0
 
             if new_state == "idle":
-                self.state_duration = random.randint(600, 60 * 120)  # 10 sec to 1 min
+                self.state_duration = random.randint(180, 60 * 120)  # 3 sec to 1 min
                 idle_variants = self.states["idle"]["variants"]
                 self.current_idle_frames = random.choice(idle_variants)
             elif new_state == "speak" and self.speak:
